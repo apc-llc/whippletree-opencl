@@ -31,10 +31,12 @@
 //
 
 #pragma once
+#ifndef OPENCL_CODE
+#include <algorithm>
+#endif
 
-//#include <algorithm>
 #include "procedureInterface.h"
-//#include "random.h"
+#include "random.h"
 
 #include "tools/common.h"
 
@@ -238,10 +240,10 @@ struct AllPhasesActiveTrait
 };
 
 
-#ifndef OPENCL_CODE
 template <int ElementSize>
 struct DataAlignment;
 
+#ifndef OPENCL_CODE
 class ProcInfoEnd
 {
 public:
@@ -298,7 +300,38 @@ public:
   }
 
 };
+#else
+//OPENCL COPY
+class ProcInfoEnd
+{
+public:
 
+  typedef NoProcedure Procedure;
+  typedef ProcInfoEnd Next;
+
+
+  static void print()
+  {
+    printf("\n");
+  }
+
+   const int ProcedureId = 0;
+
+   const int MaxId = 0;
+   const int MaxDataSize = 0;
+   const int NumProcedures = 0;
+   const bool ItemizedOnly = true;
+   const int CombMaxNumThreads = 0;
+
+   const int MinThreadsAmongWorkpackages = 2048;
+
+ 
+};
+
+
+#endif
+
+#ifndef OPENCL_CODE
 template<class TProcInfo, int MinThreadCount, int MaxThreadCount, int Step = 32>
 struct IterateOccupancy
 {
@@ -484,12 +517,19 @@ struct selectProcId<false, id_a, id_b>
 	 const int value = id_b;
 };
 
-
+#ifdef OPENCL_CODE
+template <typename ProcInfo, typename Proc>
+struct findProcId
+{
+	const int value = selectProcId<typesEqual<typename ProcInfo::Procedure, Proc>::value, ProcInfo::ProcedureId, findProcId<typename ProcInfo::Next, Proc>::value>::value;
+};
+#else
 template <typename ProcInfo, typename Proc>
 struct findProcId
 {
 	static const int value = selectProcId<typesEqual<typename ProcInfo::Procedure, Proc>::value, ProcInfo::ProcedureId, findProcId<typename ProcInfo::Next, Proc>::value>::value;
 };
+#endif
 
 template <typename Proc>
 struct findProcId<ProcInfoEnd, Proc>

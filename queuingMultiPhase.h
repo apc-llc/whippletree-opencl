@@ -39,7 +39,7 @@
 template< template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits,  class NextOrig, int Phase, bool MatchPhase>
 struct PhaseProcInfoInter;
 
-
+#ifndef OPENCL_CODE
 template< template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits,  class NextOrig, int Phase>
 struct PhaseProcInfoInter<TPhaseTraits,NextOrig,Phase,true>: public ProcInfo<typename NextOrig::Procedure, PhaseProcInfoInter<TPhaseTraits, typename NextOrig::Next, Phase, TPhaseTraits<typename NextOrig::Next::Procedure,Phase>::Active> >
 { 
@@ -50,6 +50,7 @@ struct PhaseProcInfoInter<TPhaseTraits,NextOrig,Phase,true>: public ProcInfo<typ
   //}
 
 };
+#endif
 
 template< template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits,  class NextOrig, int Phase>
 struct PhaseProcInfoInter<TPhaseTraits,NextOrig,Phase,false> : public PhaseProcInfoInter<TPhaseTraits, typename NextOrig::Next, Phase, TPhaseTraits<typename NextOrig::Next::Procedure,Phase>::Active>
@@ -82,6 +83,7 @@ struct PhaseProcInfoInter<TPhaseTraits,ProcInfoEnd,Phase,false> : public ProcInf
 template<class Priority, template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits, class ProcedureInfoOrig, int Phase, bool MatchPhase>
 struct PhaseProcInfo;
 
+#ifndef OPENCL_CODE
 template<class Priority, template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits, class ProcedureInfoOrig, int Phase>
 struct PhaseProcInfo<Priority, TPhaseTraits, ProcedureInfoOrig, Phase, true> : public ProcInfoWithPriority<Priority, PhaseProcInfoInter<TPhaseTraits, ProcedureInfoOrig, Phase, true > >
 { 
@@ -91,6 +93,7 @@ struct PhaseProcInfo<Priority, TPhaseTraits, ProcedureInfoOrig, Phase, true> : p
   //  PhaseProcInfoInter<TPhaseTraits, ProcedureInfoOrig, Phase, true > ::tell();
   //}
 };
+#endif
 
 template<class TPriority, template<class /*TTProc*/, int /*Phase*/> class TPhaseTraits, class ProcedureInfoOrig, int Phase>
 struct PhaseProcInfo<TPriority, TPhaseTraits, ProcedureInfoOrig, Phase, false> : public PhaseProcInfo<TPriority, TPhaseTraits, typename ProcedureInfoOrig::Next, Phase, TPhaseTraits<typename ProcedureInfoOrig::Next::Procedure,Phase>::Active >
@@ -142,32 +145,32 @@ struct PhaseQueues
   NextQueue nq;
 
   template<class Visitor>
-  __device__ bool visit(Visitor& visitor);
+  /*__device__*/ bool visit(Visitor& visitor);
 
    template<class Visitor>
-  __host__ static bool staticVisit(Visitor& visitor);
+  /*__host__*/ static bool staticVisit(Visitor& visitor);
 
 
   
-  __inline__ __device__ void init() 
+  __inline__ /*__device__*/ void init() 
   {
     q.init();
     nq.init();
   }
   
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   {
     q.record();
     nq.record();
   }
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   {
     q.reset();
     nq.reset();
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
     if(phase == Phase)
       return q. template enqueueInitial<PROCEDURE>(data);
@@ -175,7 +178,7 @@ struct PhaseQueues
   }
 
   template<int Threads, class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData* data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
     if(phase == Phase)
       return q. template enqueueInitial<Threads,PROCEDURE>(data);
@@ -183,7 +186,7 @@ struct PhaseQueues
   }
 
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
     if(Phase == phase)
     {
@@ -196,7 +199,7 @@ struct PhaseQueues
   }
 
   template<int threads, class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
     if(Phase == phase)
     {
@@ -209,7 +212,7 @@ struct PhaseQueues
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeue(void*& data, int*& procId, int maxShared = -1)
   {
     if(Phase == CurrentPhase)
       return q. template dequeue<MultiProcedure>(data, procId, maxShared);
@@ -217,7 +220,7 @@ struct PhaseQueues
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum = -1)
+  __inline__ /*__device__*/ int dequeueSelected(void*& data, int procId, int maxNum = -1)
   {
     if(Phase == CurrentPhase)
       return q. template dequeueSelected<MultiProcedure>(data, procId, maxNum);
@@ -225,7 +228,7 @@ struct PhaseQueues
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
   {
     if(Phase == CurrentPhase)
       return q. template dequeueStartRead<MultiProcedure>(data, procId, maxShared);
@@ -233,21 +236,21 @@ struct PhaseQueues
   }
 
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ int reserveRead(int maxNum = -1)
+  __inline__ /*__device__*/ int reserveRead(int maxNum = -1)
   {
     if(Phase == CurrentPhase)
       return q. template reserveRead<PROCEDURE>(maxNum);
     return nq . template reserveRead<PROCEDURE,CurrentPhase>(maxNum);
   }
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ int startRead(void*& data, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int num)
   {
     if(Phase == CurrentPhase)
       return q. template startRead<PROCEDURE>(data,num);
     return nq . template startRead<PROCEDURE,CurrentPhase>(data,num);
   }
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ void finishRead(int id,  int num)
+  __inline__ /*__device__*/ void finishRead(int id,  int num)
   {
     if(Phase == CurrentPhase)
       return q. template finishRead<PROCEDURE>(id,num);
@@ -255,7 +258,7 @@ struct PhaseQueues
   }
 
   template<int CurrentPhase>
-  __inline__ __device__ void numEntries(int* counts)
+  __inline__ /*__device__*/ void numEntries(int* counts)
   {
     if(Phase == CurrentPhase)
       return q. numEntries(counts);
@@ -263,28 +266,28 @@ struct PhaseQueues
   }
 
   template<int CurrentPhase>
-  __inline__ __device__ void workerStart()
+  __inline__ /*__device__*/ void workerStart()
   { 
     if(Phase == CurrentPhase)
       return q. workerStart();
     return nq . template workerStart<CurrentPhase>();
   }
   template<int CurrentPhase>
-  __inline__ __device__ void workerMaintain()
+  __inline__ /*__device__*/ void workerMaintain()
   { 
     if(Phase == CurrentPhase)
       return q. workerMaintain();
     return nq . template workerMaintain<CurrentPhase>();
   }
   template<int CurrentPhase>
-  __inline__ __device__ void workerEnd()
+  __inline__ /*__device__*/ void workerEnd()
   { 
     if(Phase == CurrentPhase)
       return q. workerEnd();
     return nq . template workerEnd<CurrentPhase>();
   }
   template<int CurrentPhase>
-  __inline__ __device__ void globalMaintain()
+  __inline__ /*__device__*/ void globalMaintain()
   { 
     if(Phase == CurrentPhase)
       return q. globalMaintain();
@@ -297,97 +300,97 @@ template<template<class /*ProcedureInfo*/> class InternalQueue, class ProcedureI
 struct PhaseQueues<InternalQueue, ProcedureInfo, EndPhase,EndPhase>
 {
 
-  __inline__ __device__ void init() 
+  __inline__ /*__device__*/ void init() 
   { }
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   { }
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   { }
 
   template<class Visitor>
-  __device__ bool visit(Visitor& visitor)
+  /*__device__*/ bool visit(Visitor& visitor)
   {
     return false;
   }
 
    template<class Visitor>
-  __host__ static bool staticVisit(Visitor& visitor)
+  /*__host__*/ static bool staticVisit(Visitor& visitor)
   {
     return false;
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
     return false;
   }
 
   template<int Threads, class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData *data, int phase  = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData *data, int phase  = 0) 
   {
     return false;
   }
 
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data, int phase  = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data, int phase  = 0) 
   {
     return false;
   }
 
   template<int threads, class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase  = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase  = 0) 
   {
     return false;
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared)
+  __inline__ /*__device__*/ int dequeue(void*& data, int*& procId, int maxShared)
   {
     return 0;
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum)
+  __inline__ /*__device__*/ int dequeueSelected(void*& data, int procId, int maxNum)
   {
     return 0;
   }
 
   template<bool MultiProcedure, int CurrentPhase>
-  __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared)
+  __inline__ /*__device__*/ int dequeueStartRead(void*& data, int*& procId, int maxShared)
   {
     return 0;
   }
 
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ int reserveRead(int maxNum)
+  __inline__ /*__device__*/ int reserveRead(int maxNum)
   {
     return 0;
   }
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ int startRead(void*& data, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int num)
   {
     return -1;
   }
 
   template<class PROCEDURE, int CurrentPhase>
-  __inline__ __device__ void finishRead(int id,  int num)
+  __inline__ /*__device__*/ void finishRead(int id,  int num)
   { }
 
   template<int CurrentPhase>
-  __inline__ __device__ void numEntries(int* counts)
+  __inline__ /*__device__*/ void numEntries(int* counts)
   { }
 
   template<int CurrentPhase>
-  __inline__ __device__ void workerStart()
+  __inline__ /*__device__*/ void workerStart()
   { }
   template<int CurrentPhase>
-  __inline__ __device__ void workerMaintain()
+  __inline__ /*__device__*/ void workerMaintain()
   { }
   template<int CurrentPhase>
-  __inline__ __device__ void workerEnd()
+  __inline__ /*__device__*/ void workerEnd()
   { }
   template<int CurrentPhase>
-  __inline__ __device__ void globalMaintain()
+  __inline__ /*__device__*/ void globalMaintain()
   { }
 
 };
@@ -405,41 +408,66 @@ public:
   MPhaseQueues qs;
 
    template<class Visitor>
-  __device__ bool visit(Visitor& visitor)
+  /*__device__*/ bool visit(Visitor& visitor)
   {
     return qs.template visit<Visitor>(visitor);
   }
 
    template<class Visitor>
-  __host__ static bool staticVisit(Visitor& visitor)
+  /*__host__*/ static bool staticVisit(Visitor& visitor)
   {
    return MPhaseQueues :: template staticVisit<Visitor>(visitor);
   }
 
 
-  __inline__ __device__ void init() 
+  __inline__ /*__device__*/ void init() 
   {
     qs.init();
   }
   
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   {
     qs.record();
   }
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   {
     qs.reset();
   }
 
 
+	#ifndef OPENCL_CODE
   static std::string name()
   {
-    return std::string("MultiPhaseQueue") + InternalQueue<TProcedureInfo>::name();
+    
+	return std::string("MultiPhaseQueue") + InternalQueue<TProcedureInfo>::name();
   }
+	#endif
 };
 
 
+#ifdef OPENCL_CODE
+template<class MultiPhaseInstance, int CurrentPhase>
+class CurrentMultiphaseQueue : public MultiPhaseInstance
+{
+public:
+  const int Phase = CurrentPhase;
 
+  template<class TProc, int Phase> 
+  class MyPhaseTraits : public MultiPhaseInstance::ProcedureInfo:: template PhaseTraits<TProc, Phase > { };
+
+  typedef  PhaseProcInfo<
+    typename MultiPhaseInstance::ProcedureInfo:: template Priority<Phase>, 
+    MyPhaseTraits, 
+    typename MultiPhaseInstance::ProcedureInfo, 
+    Phase, 
+    MultiPhaseInstance::ProcedureInfo:: template PhaseTraits<typename MultiPhaseInstance::ProcedureInfo::Procedure,Phase>::Active >  CurrentPhaseProcInfo;
+
+  //static void pStart()
+  //{
+  //  printf("%d %d\n", ProcedureInfo::Procedure::myid,MultiPhaseInstance::ProcedureInfo:: template PhaseTraits<typename ProcedureInfo::Procedure,Phase>::Active );
+  //  CurrentPhaseProcInfo::tell();
+  //}
+#else
 template<class MultiPhaseInstance, int CurrentPhase>
 class CurrentMultiphaseQueue : public MultiPhaseInstance
 {
@@ -462,90 +490,98 @@ public:
   //  CurrentPhaseProcInfo::tell();
   //}
 
+#endif
 
+#ifdef OPENCL_CODE
+   const bool needTripleCall = MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::needTripleCall;
+   const bool supportReuseInit =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::supportReuseInit;
+   const int globalMaintainMinThreads =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::globalMaintainMinThreads;
+   int globalMaintainSharedMemory(int Threads) { return  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::globalMaintainSharedMemory(Threads); }
+   const int requiredShared =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::requiredShared;
+#else
   static const bool needTripleCall = MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::needTripleCall;
   static const bool supportReuseInit =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::supportReuseInit;
   static const int globalMaintainMinThreads =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::globalMaintainMinThreads;
   static int globalMaintainSharedMemory(int Threads) { return  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::globalMaintainSharedMemory(Threads); }
   static const int requiredShared =  MultiPhaseInstance::template InternalQueue<CurrentPhaseProcInfo>::requiredShared;
-
+#endif
 
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
     return MultiPhaseInstance::qs. template enqueueInitial<PROCEDURE>(data, phase);
   }
 
   template<int threads, class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData* data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
     return MultiPhaseInstance::qs. template enqueueInitial<threads, PROCEDURE>(data, phase);
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
     return MultiPhaseInstance::qs. template enqueue<PROCEDURE, CurrentPhase>(data, phase);
   }
 
   template<int threads, class PROCEDURE>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase = 0) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
     return MultiPhaseInstance::qs. template enqueue<threads,PROCEDURE, CurrentPhase>(data, phase);
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeue(void*& data, int*& procId, int maxShared = -1)
   {
     return MultiPhaseInstance::qs. template dequeue<MultiProcedure, CurrentPhase>(data, procId,maxShared);
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum = -1)
+  __inline__ /*__device__*/ int dequeueSelected(void*& data, int procId, int maxNum = -1)
   {
     return MultiPhaseInstance::qs. template dequeueSelected<MultiProcedure, CurrentPhase>(data, procId,maxNum);
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
   {
     return MultiPhaseInstance::qs. template dequeueStartRead<MultiProcedure, CurrentPhase>(data, procId,maxShared);
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ int reserveRead(int maxNum = -1)
+  __inline__ /*__device__*/ int reserveRead(int maxNum = -1)
   {
     return MultiPhaseInstance::qs. template reserveRead<PROCEDURE, CurrentPhase>(maxNum);
   }
   template<class PROCEDURE>
-  __inline__ __device__ int startRead(void*& data, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int num)
   {
     return MultiPhaseInstance::qs. template startRead<PROCEDURE, CurrentPhase>(data, num);
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead(int id,  int num)
+  __inline__ /*__device__*/ void finishRead(int id,  int num)
   {
     return MultiPhaseInstance::qs. template finishRead<PROCEDURE, CurrentPhase>(id, num);
   }
 
-  __inline__ __device__ void numEntries(int* counts)
+  __inline__ /*__device__*/ void numEntries(int* counts)
   {
     return MultiPhaseInstance::qs. template numEntries<CurrentPhase>(counts);
   }
 
-  __inline__ __device__ void workerStart()
+  __inline__ /*__device__*/ void workerStart()
   {
     return MultiPhaseInstance::qs. template workerStart<CurrentPhase>();
   }
-  __inline__ __device__ void workerMaintain()
+  __inline__ /*__device__*/ void workerMaintain()
   { 
     return MultiPhaseInstance::qs. template workerMaintain<CurrentPhase>();
   }
-  __inline__ __device__ void workerEnd()
+  __inline__ /*__device__*/ void workerEnd()
   {
     return MultiPhaseInstance::qs. template workerEnd<CurrentPhase>();
   }
-  __inline__ __device__ void globalMaintain()
+  __inline__ /*__device__*/ void globalMaintain()
   { 
     return MultiPhaseInstance::qs. template globalMaintain<CurrentPhase>();
   }
@@ -556,7 +592,7 @@ public:
 
 template<template<class /*ProcedureInfo*/> class InternalQueue, class ProcedureInfo, int Phase, int NumPhases>
 template<class Visitor>
-__device__ bool PhaseQueues<InternalQueue,ProcedureInfo,Phase,NumPhases>::visit(Visitor& visitor)
+/*__device__*/ bool PhaseQueues<InternalQueue,ProcedureInfo,Phase,NumPhases>::visit(Visitor& visitor)
 {
   typedef CurrentMultiphaseQueue< MultiPhaseQueue< ProcedureInfo, InternalQueue>, Phase > VisibleQ;
   if(!visitor.template visit<TProcInfo, VisibleQ, Phase>(q))
@@ -566,7 +602,7 @@ __device__ bool PhaseQueues<InternalQueue,ProcedureInfo,Phase,NumPhases>::visit(
 
 template<template<class /*ProcedureInfo*/> class InternalQueue, class ProcedureInfo, int Phase, int NumPhases>
 template<class Visitor>
-__host__ bool PhaseQueues<InternalQueue,ProcedureInfo,Phase,NumPhases>::staticVisit(Visitor& visitor)
+/*__host__*/ bool PhaseQueues<InternalQueue,ProcedureInfo,Phase,NumPhases>::staticVisit(Visitor& visitor)
 {
   typedef CurrentMultiphaseQueue< MultiPhaseQueue< ProcedureInfo, InternalQueue>, Phase > VisibleQ;
   if(!visitor.template visit<TProcInfo, VisibleQ, Phase>())

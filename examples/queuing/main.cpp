@@ -62,82 +62,110 @@
 //  THE SOFTWARE.
 //
 
-
-
-#ifndef TOOLS_UTILS_INCLUDED
-#define TOOLS_UTILS_INCLUDED
-
-
-#include <string>
-//#include <sstream>
-#include <stdexcept>
 //#include <cuda_runtime_api.h>
-
-
-//Error checking Macro
-#include <assert.h>
 #include <CL/cl.h>
-#include <stdio.h>
-#include <stdlib.h>
 
+#include <iostream>
+#include <tools/utils.h>
 
-#define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cl_int code, const char *file, int line)
+cl_context context;
+cl_device_id *devices;
+    
+
+void runTest(int device);
+int main(int argc, char** argv)
 {
-	if (code != CL_SUCCESS) 
-	{
-		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
-	}
-}
+  try
+  {
+	cl_int status;
+	int cl_device = argc > 1 ? atoi(argv[1]) : 0;
 
+    //Initializing platform
+    cl_uint numPlatforms = 0;
+    cl_platform_id *platforms = NULL;
+    clErrchk(clGetPlatformIDs(0, NULL, &numPlatforms));
+    platforms = (cl_platform_id*)malloc(numPlatforms*sizeof(cl_platform_id));
+    clErrchk(clGetPlatformIDs(numPlatforms, platforms,NULL));
+    
 
-
-namespace Tools
-{
-    class clError : public std::runtime_error
+    //Initialize device
+    cl_uint numDevices;
+    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices));
+    devices = (cl_device_id*)malloc(numDevices*sizeof(cl_device_id));
+    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL));
+	if (!numDevices)
     {
-    private:
-      static std::string genErrorString(cl_int error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        //return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error";
-      }
-    public:
-      clError(cl_int error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
+       std::cout << "No CL devices available" << std::endl;
+       return -1;
+    }
+	if (numDevices<=cl_device)
+    {
+       std::cout << "No such CL device ID" << std::endl;
+       return -1;
+    }
 
-      clError(cl_int error)
-        : runtime_error(0)//cudaGetErrorString(error))
-      {
-      }
+    //Creating context
+    context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
+	clErrchk(status);
 
-      clError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline void checkError(cl_int error, const char* file, int line)
+    //Creating command queue
+    
+/*
+    int cl_device = argc > 1 ? atoi(argv[1]) : 0;
+
+    int count;
+    CUDA_CHECKED_CALL(cudaGetDeviceCount(&count));
+    if (!count)
+    {
+       std::cout << "No CUDA devices available" << std::endl;
+       return -1;
+    }
+    cudaDeviceProp deviceProp;
+    CUDA_CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, cuda_device));
+    std::cout << "Using device: " << deviceProp.name << std::endl;
+*/
+
+
+
+
+	runTest(cl_device);
+
+
+#ifdef WIN32
+  if(argc < 3)
+    getchar();
+#endif
+
+
+    clErrchk(clReleaseContext(context));
+	free(platforms);
+    free(devices);
+	return 0;
+	}
+/*  catch (const Tools::CudaError& e)
   {
-    if (error != CL_SUCCESS)
-      throw clError(error, file, line);
+    std::cout << "CUDA error: " << e.what() << std::endl;
+#ifdef WIN32
+    getchar();
+#endif
+    return -1;
+  }
+  catch (const std::exception& e)
+  {
+    std::cout << "error: " << e.what() << std::endl;
+#ifdef WIN32
+    getchar();
+#endif
+    return -2;
+  }
+	*/
+  catch (...)
+  {
+    std::cout << "unknown exception!" << std::endl;
+#ifdef WIN32
+    getchar();
+#endif
+    return -3;
   }
 
-  inline void checkError()
-  {
-    cl_int error = 0;//
-    if (error != CL_SUCCESS)
-      throw clError(error);
-  }
 }
-
-#define CL_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CL_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CL_IGNORE_CALL(call) call; clGetLastError();
-
-
-#endif  // TOOLS_UTILS_INCLUDED

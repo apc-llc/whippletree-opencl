@@ -62,82 +62,71 @@
 //  THE SOFTWARE.
 //
 
+#pragma once
 
-
-#ifndef TOOLS_UTILS_INCLUDED
-#define TOOLS_UTILS_INCLUDED
-
-
-#include <string>
-//#include <sstream>
-#include <stdexcept>
-//#include <cuda_runtime_api.h>
-
-
-//Error checking Macro
-#include <assert.h>
 #include <CL/cl.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "procedureInterface.h"
+#include "procinfoTemplate.h"
+#include "random.h"
+#include <tools/utils.h>
 
 
-#define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cl_int code, const char *file, int line)
+class Proc2 : public ::Procedure
 {
-	if (code != CL_SUCCESS) 
-	{
-		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
-	}
-}
+public:
+  typedef cl_int4 ExpectedData;
+  static const int NumThreads = 64;
+  static const bool ItemInput = false; // false results in a lvl 1  task
+  static const int sharedMemory = 2*sizeof(int)*NumThreads;  // shared memory requirements 
 
+#ifdef OPENCL_CODE
+  template<class Q, class Context>
+	static __inline__ void execute(int threadId, int numThreads, Q* queue,  ExpectedData* data, volatile uint* shared) //__device__
+  { 
+    //now we have got 64 threads working here... we might communicate via shared memory
+    //or run synchronizations..
 
+    // store something in shared memory
+    shared[threadId] = data->x + threadId;
+    shared[NumThreads + threadId] = data->x - threadId;
 
-namespace Tools
-{
-    class clError : public std::runtime_error
-    {
-    private:
-      static std::string genErrorString(cl_int error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        //return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error";
-      }
-    public:
-      clError(cl_int error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
+    // run a prefix sum
+    int n = 2*NumThreads;
+    int offset = 1;  
+    for (int d = n/2; d > 0; d/=2)  
+    {   
+      //use the special sync, as the cuda blocksize might not match the megakernel blocksize
+      Context::sync();
+      if (threadId < d)  
+      {  
+        int ai = offset*(2*threadId+1)-1;
+        int bi = offset*(2*threadId+2)-1;
+        shared[bi] += shared[ai];  
+      }  
+      offset *= 2;  
+    }
 
-      clError(cl_int error)
-        : runtime_error(0)//cudaGetErrorString(error))
-      {
-      }
+    Context::sync();
+    if (threadId == 0) 
+        shared[n - 1] = 0;  
 
-      clError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline void checkError(cl_int error, const char* file, int line)
-  {
-    if (error != CL_SUCCESS)
-      throw clError(error, file, line);
+    for (int d = 1; d < n; d *= 2) 
+    {  
+      offset /= 2;  
+      Context::sync(); 
+      if (threadId < d)                       
+      { 
+        int ai = offset*(2*threadId+1)-1;  
+        int bi = offset*(2*threadId+2)-1;  
+        float t = shared[ai];  
+        shared[ai] = shared[bi];  
+        shared[bi] += t;   
+      }  
+    }  
+    Context::sync();
+
+	 if(threadId == numThreads-1)
+		printf("thread %d of %d excutes Proc2 for data %d (CUDA thread %d %d) and computed prefix sum: %d\n", threadId, numThreads, data->s[0], get_local_id(0), get_group_id(0), shared[threadId]);
   }
-
-  inline void checkError()
-  {
-    cl_int error = 0;//
-    if (error != CL_SUCCESS)
-      throw clError(error);
-  }
-}
-
-#define CL_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CL_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CL_IGNORE_CALL(call) call; clGetLastError();
-
-
-#endif  // TOOLS_UTILS_INCLUDED
+#endif
+};

@@ -74,7 +74,7 @@ int main() {
 	clErrchk(status);
 
 	
-	char options[1024];
+	char options[2*1024];
 	sprintf(options, "-x clc++ -I /home/alex/opencl_compiler/ -DOPENCL_CODE");
     clBuildProgram(program, numDevices, devices, options, NULL, NULL);
 	cl_kernel kernel = NULL;

@@ -62,82 +62,31 @@
 //  THE SOFTWARE.
 //
 
-
-
-#ifndef TOOLS_UTILS_INCLUDED
-#define TOOLS_UTILS_INCLUDED
-
-
-#include <string>
-//#include <sstream>
-#include <stdexcept>
-//#include <cuda_runtime_api.h>
-
-
-//Error checking Macro
-#include <assert.h>
+#pragma once
 #include <CL/cl.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "procedureInterface.h"
+#include "procinfoTemplate.h"
+#include "random.h"
+#include <tools/utils.h>
 
+#include "proc1.h"
 
-#define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cl_int code, const char *file, int line)
+// a procedure is defined by deriving from the Procedure class
+class Proc0 : public ::Procedure
 {
-	if (code != CL_SUCCESS) 
-	{
-		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
-	}
-}
+public:
+  typedef cl_int4 ExpectedData; // the input data
+  static const int NumThreads = 1; // number of required threads
+  static const bool ItemInput = true; // ItemInput with NumThreads = 1 results in a lvl-2 tasks
 
-
-
-namespace Tools
-{
-    class clError : public std::runtime_error
-    {
-    private:
-      static std::string genErrorString(cl_int error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        //return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error";
-      }
-    public:
-      clError(cl_int error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
-
-      clError(cl_int error)
-        : runtime_error(0)//cudaGetErrorString(error))
-      {
-      }
-
-      clError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline void checkError(cl_int error, const char* file, int line)
+#ifdef OPENCL_CODE  
+  template<class Q, class Context>
+	static __inline__ void execute(int threadId, int numThreads, Q* queue,  ExpectedData* data, uint* shared) //__device__
   {
-    if (error != CL_SUCCESS)
-      throw clError(error, file, line);
+    printf("thread %d of %d excutes Proc0 for data %d (CUDA thread %d %d) and generates an item for proc 1\n", threadId, numThreads, data->x, get_local_id(0),  get_group_id(0));
+    
+    //enqueue an element for Proc1
+    queue-> template enqueue< Proc1 >(*data, 0);
   }
-
-  inline void checkError()
-  {
-    cl_int error = 0;//
-    if (error != CL_SUCCESS)
-      throw clError(error);
-  }
-}
-
-#define CL_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CL_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CL_IGNORE_CALL(call) call; clGetLastError();
-
-
-#endif  // TOOLS_UTILS_INCLUDED
+#endif
+};

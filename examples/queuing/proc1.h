@@ -62,82 +62,41 @@
 //  THE SOFTWARE.
 //
 
-
-
-#ifndef TOOLS_UTILS_INCLUDED
-#define TOOLS_UTILS_INCLUDED
-
-
-#include <string>
-//#include <sstream>
-#include <stdexcept>
-//#include <cuda_runtime_api.h>
-
-
-//Error checking Macro
-#include <assert.h>
+#pragma once
 #include <CL/cl.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "procedureInterface.h"
+#include "procinfoTemplate.h"
+#include "random.h"
+#include <tools/utils.h>
 
+#include "proc2.h"
 
-#define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cl_int code, const char *file, int line)
+class Proc1 : public ::Procedure
 {
-	if (code != CL_SUCCESS) 
-	{
-		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
-	}
-}
+public:
+  typedef cl_int4 ExpectedData;
+  static const int NumThreads = 4;
+  static const bool ItemInput = true; // ItemInput with NumThreads = 4 results in a lvl-0 tasks
+  static const int sharedMemory = sizeof(int); // amount of shared memory that is needed
 
+  template<class Q, class Context>
+  static __inline__ void execute(int threadId, int numThreads, Q* queue,  ExpectedData* data, uint* shared) //__device__
+  { 
+    //using 4 threads so compute local ids
+    uint myGroupId = threadId / NumThreads;
+    uint myLocalThreadId = threadId % NumThreads;
 
-
-namespace Tools
-{
-    class clError : public std::runtime_error
-    {
-    private:
-      static std::string genErrorString(cl_int error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        //return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error";
-      }
-    public:
-      clError(cl_int error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
-
-      clError(cl_int error)
-        : runtime_error(0)//cudaGetErrorString(error))
-      {
-      }
-
-      clError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline void checkError(cl_int error, const char* file, int line)
-  {
-    if (error != CL_SUCCESS)
-      throw clError(error, file, line);
+    //we are using warp sync here (NumThreads is a divider of the warp size)
+    //so we should cast the shared memory into volatile to make sure the compiler
+    //does not optimize the access away
+    volatile uint* myGroupShared = const_cast<volatile uint*>(shared) + myGroupId;
+    if(myLocalThreadId == 2)
+      *myGroupShared = data->s[0];
+    uint fromShared = *myGroupShared;
+    printf("thread %d of %d excutes Proc1 for data %d, being thread %d in group %d with data in shared: %d\n", threadId, numThreads, data->s[0], myLocalThreadId, myGroupId, fromShared);
+    
+    // enqueue an element for Proc2
+    if(myLocalThreadId == 0)
+      queue-> template enqueue< Proc2 >(*data, 1);
   }
-
-  inline void checkError()
-  {
-    cl_int error = 0;//
-    if (error != CL_SUCCESS)
-      throw clError(error);
-  }
-}
-
-#define CL_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CL_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CL_IGNORE_CALL(call) call; clGetLastError();
-
-
-#endif  // TOOLS_UTILS_INCLUDED
+};

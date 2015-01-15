@@ -63,81 +63,91 @@
 //
 
 
-
-#ifndef TOOLS_UTILS_INCLUDED
-#define TOOLS_UTILS_INCLUDED
-
-
-#include <string>
-//#include <sstream>
-#include <stdexcept>
-//#include <cuda_runtime_api.h>
-
-
-//Error checking Macro
-#include <assert.h>
 #include <CL/cl.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <tools/utils.h>
+
+extern cl_context context;
+extern cl_device_id *devices;
+
+//ALL CUDA HEADERS TO BE REWRITTEN
+
+//#include "queueDistLocks.cuh"
+//#include "queueShared.cuh"
+//#include "queuingPerProc.cuh"
+#include "techniqueMegakernel.h"
+//#include "techniqueKernels.cuh"
+//#include "techniqueDynamicParallelism.cuh"
+//#include "segmentedStorage.cuh"
+
+#include "proc0.h"
+#include "proc1.h"
+#include "proc2.h"
 
 
-#define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cl_int code, const char *file, int line)
+
+//somehow we need to get something into the queue
+//the init proc does that for us
+class InitProc
 {
-	if (code != CL_SUCCESS) 
-	{
-		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
-	}
-}
+public:
+  template<class Q>
+  __inline__ //__device__
+  static void init(Q* q, int id)
+  {
+    //so lets put something into the queues
+    cl_int4 d;
+	d.s[0] = id+1;
+	d.s[0] = 0;
+	d.s[0] = 1;
+	d.s[0] = 2;
+    q-> template enqueueInitial<Proc0>(d);
+  }
+};
 
 
+typedef ProcInfo<Proc0,N<Proc1,N<Proc2> > >TestProcInfo;
 
-namespace Tools
+
+//lets use a dist locks queue for each procedure, which can hold 12k elements
+template<class ProcInfo>
+class MyQueue : public PerProcedureQueueTyping<QueueDistLocksOpt_t, 12*1024, false>::Type<ProcInfo> {};
+
+
+//and lets use a Megakernel which can execute multiple workpackages concurrently (dynamic)
+//and offers a maximum of 16k shared memory
+
+typedef Megakernel::DynamicPointed16336<MyQueue, TestProcInfo> MyTechnique;
+
+//typedef KernelLaunches::TechniqueMultiple<MyQueue, TestProcInfo> MyTechnique;
+
+//typedef DynamicParallelism::TechniqueQueuedNoCopy<MyQueue, InitProc, TestProcInfo> MyTechnique;
+
+void runTest(int cl_device)
 {
-    class clError : public std::runtime_error
-    {
-    private:
-      static std::string genErrorString(cl_int error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        //return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error";
-      }
-    public:
-      clError(cl_int error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
+	cl_int status;	
+	cl_command_queue cmdQueue;
+    cmdQueue = clCreateCommandQueue(context, devices[cl_device], 0, &status);
+	clErrchk(status);
 
-      clError(cl_int error)
-        : runtime_error(0)//cudaGetErrorString(error))
-      {
-      }
+  //create everything
+  MyTechnique technique;
+  technique.init();
+  
+  technique.insertIntoQueue<InitProc>(10);
+  
+	cl_event event;	
+	double time = 0;
 
-      clError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline void checkError(cl_int error, const char* file, int line)
-  {
-    if (error != CL_SUCCESS)
-      throw clError(error, file, line);
-  }
+	cl_ulong time_start=0, time_end=0;
+	clErrchk(clWaitForEvents(1, &event));
+	clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
+		
 
-  inline void checkError()
-  {
-    cl_int error = 0;//
-    if (error != CL_SUCCESS)
-      throw clError(error);
-  }
+	technique.execute(0, cmdQueue);
+
+	clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+	time += (time_end - time_start)/1e+6;
+	clErrchk(clReleaseCommandQueue(cmdQueue));
+
+  printf("run completed in %fs\n", time);
 }
-
-#define CL_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CL_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CL_IGNORE_CALL(call) call; clGetLastError();
-
-
-#endif  // TOOLS_UTILS_INCLUDED

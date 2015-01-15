@@ -46,7 +46,7 @@
 
 
 #include "procinfoTemplate.h"
-//#include "queuingMultiPhase.h"
+#include "queuingMultiPhase.h"
 
 #include "techniqueMegakernel.h"//reordered123 from cu to h and this from cuh to cpp
 
