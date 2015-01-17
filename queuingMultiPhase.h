@@ -395,7 +395,7 @@ struct PhaseQueues<InternalQueue, ProcedureInfo, EndPhase,EndPhase>
 
 };
 
-template<class TProcedureInfo, template<class ProcedureInfo> class TInternalQueue>
+template<class TProcedureInfo, template<class /*ProcedureInfo*/> class TInternalQueue>
 class MultiPhaseQueue
 {
 public:
