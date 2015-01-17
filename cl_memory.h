@@ -143,9 +143,9 @@ public:
 
 struct cuda_deleter
 {
-  void operator()(void* ptr)
+  void operator()(cl_mem * ptr)
   {
-    clReleaseMemObject(ptr);
+    clReleaseMemObject(*ptr);
   }
 };
 

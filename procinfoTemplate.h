@@ -168,50 +168,50 @@ public:
 template <int a, int b> 
 struct maxOperator 
 { 
-  const int result = a > b ? a : b; 
+  static const int result = a > b ? a : b; 
 };
 
 template <int a, int b> 
 struct minOperator 
 { 
-  const int result = a < b ? a : b; 
+  static const int result = a < b ? a : b; 
 };
 
 template <bool test, int a, int b>
 struct switchOperator
 {
-  const int result = test ? a : b;
+  static const int result = test ? a : b;
 };
 
 template<int VAL>
 struct AvoidZero
 {
-  const int val = VAL;
+  static const int val = VAL;
 };
 
 template<>
 struct AvoidZero<0>
 {
-  const int val = 1;
+  static const int val = 1;
 };
 
 
 template<class A, class B>
 struct Equals
 {
-  const bool result = false;
+  static const bool result = false;
 };
 
 template<class A>
 struct Equals<A,A>
 {
-  const bool result = true;
+  static const bool result = true;
 };
 #endif
 
 
 
-
+#ifdef OPENCL_CODE
 template<int Phase>
 struct NoPriority
 {
@@ -230,15 +230,43 @@ struct NoPriority
     return 1;
   }
 };
+#else
+template<int Phase>
+struct NoPriority
+{
+  static const unsigned int MinPriority = 1;
+  static const unsigned int MaxPriority = 1;
+
+  template<class TProc>
+  __inline__ /*__device__*/ static unsigned int eval(typename TProc::ExpectedData* data)
+  {
+    return 1;
+  }
+
+  template<class ProcedureIdentifier>
+  __inline__ /*__device__*/ static unsigned int eval(ProcedureIdentifier procIdentifier, void* data)
+  {
+    return 1;
+  }
+};
+
+#endif
 
 
 
+#ifdef OPENCL_CODE
 template<class Proc, int Phase>
 struct AllPhasesActiveTrait
 {
   const bool Active = true;
 };
-
+#else
+template<class Proc, int Phase>
+struct AllPhasesActiveTrait
+{
+  static const bool Active = true;
+};
+#endif
 
 template <int ElementSize>
 struct DataAlignment;

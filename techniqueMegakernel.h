@@ -551,7 +551,7 @@ namespace Megakernel
 
   protected:    
     
-    std::unique_ptr<Q, cuda_deleter> q;
+    std::unique_ptr<cl_mem, cuda_deleter> q;
 
     int blockSize[PROCINFO::NumPhases];
     int blocks[PROCINFO::NumPhases];
@@ -578,9 +578,9 @@ namespace Megakernel
         technique.sharedMem[Phase] = TProcInfo:: template requiredShared<MultiElement>(technique.blockSize[Phase], LoadToShared, maxShared - queueSharedMem, false);
         //if(!LoadToShared)
         //  sharedMem.x = 16;
-        technique.sharedMem[Phase].x /= 4;
-        technique.sharedMem[Phase].y = technique.sharedMem[Phase].y/4;
-        technique.sharedMem[Phase].z = technique.sharedMem[Phase].z/4;
+        technique.sharedMem[Phase].s[0] /= 4;
+        technique.sharedMem[Phase].s[1] = technique.sharedMem[Phase].s[1]/4;
+        technique.sharedMem[Phase].s[2] = technique.sharedMem[Phase].s[2]/4;
      
         //x .. procids
         //y .. data
@@ -589,8 +589,8 @@ namespace Megakernel
 
 
         //w ... -> shared mem for queues...
-        technique.sharedMemSum[Phase] = technique.sharedMem[Phase].w + queueSharedMem;
-        technique.sharedMem[Phase].w = queueSharedMem/4;
+        technique.sharedMemSum[Phase] = technique.sharedMem[Phase].s[3] + queueSharedMem;
+        technique.sharedMem[Phase].s[3] = queueSharedMem/4;
         
         if(TQueue::globalMaintainMinThreads > 0)
           technique.sharedMemSum[Phase] = max(technique.sharedMemSum[Phase], TQueue::globalMaintainSharedMemory(technique.blockSize[Phase]));
@@ -600,10 +600,10 @@ namespace Megakernel
         //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
         //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
 		        
-		megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
+		//1megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
-        CL_CHECKED_CALL(clFlush());
+        //CL_CHECKED_CALL(clFlush());
         //CL_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
         technique.blocks[Phase] = nblocks;
         //std::cout << "blocks: " << blocks << std::endl;
@@ -629,7 +629,7 @@ namespace Megakernel
 
     void init()
     {
-      q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
+      q = std::unique_ptr<cl_mem, cuda_deleter>(cudaAlloc<Q>());
 
       int magic = 2597, null = 0;
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
@@ -643,11 +643,11 @@ namespace Megakernel
       InitPhaseVisitor v(*this);
       Q::template staticVisit<InitPhaseVisitor>(v);
 
-      cudaDeviceProp props;
+      //cudaDeviceProp props;
       int dev;
       //CL_CHECKED_CALL(cudaGetDevice(&dev));
       //CL_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
-      freq = static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
+      //freq = static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
     }
 
     void resetQueue()
@@ -662,7 +662,7 @@ namespace Megakernel
       else
       {
         //recordData<Q><<<1, 1>>>(q.get());
-        CL_CHECKED_CALL(clFlush());
+        //CL_CHECKED_CALL(clFlush());
       }
     }
 
@@ -670,7 +670,7 @@ namespace Megakernel
     {
       if(!Q::supportReuseInit)
         std::cout << "ERROR Megakernel::restoreQueue(): queue does not support reuse init\n";
-      else
+      //else
         //resetData<Q><<<1, 1>>>(q.get());
     }
 
@@ -685,9 +685,9 @@ namespace Megakernel
 
       //Phase0Q::CurrentPhaseProcInfo::print();
 
-      int b = min((num + 512 - 1)/512,104);
+      //int b = min((num + 512 - 1)/512,104);
       //initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      CL_CHECKED_CALL(clFlush());
+      //CL_CHECKED_CALL(clFlush());
     }
 
     int BlockSize(int phase = 0) const
@@ -730,8 +730,8 @@ namespace Megakernel
       Q* q;
       cl_command_queue cmdQueue;
       int* shutdown;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, cl_command_queue cmdQueue, int* shutdown) :
-        phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), cmdQueue(cmdQueue), shutdown(shutdown) { }
+      //LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, cl_command_queue cmdQueue, int* shutdown) :
+        //phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), cmdQueue(cmdQueue), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
@@ -751,8 +751,8 @@ namespace Megakernel
 
       TCore::preCall(cmdQueue);
 
-      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], cmdQueue, shutdown);
-      Q::template staticVisit<LaunchVisitor>(v);
+      //LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], cmdQueue, shutdown);
+      //Q::template staticVisit<LaunchVisitor>(v);
 
       TCore::postCall(cmdQueue);
     }
@@ -806,7 +806,7 @@ namespace Megakernel
       {
         if(phase == Phase)
         {
-          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false,TimeLimiter<false,true>, StopCriteria><<<blocks, blockSize, sharedMemSum>>>(reinterpret_cast<TQueue*>(q), sharedMem, timeLimit, shutdown);
+          //megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false,TimeLimiter<false,true>, StopCriteria><<<blocks, blockSize, sharedMemSum>>>(reinterpret_cast<TQueue*>(q), sharedMem, timeLimit, shutdown);
           return true;
         }
         return false;
