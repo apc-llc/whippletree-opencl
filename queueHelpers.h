@@ -682,7 +682,7 @@ public:
   {
     return "";
   }
-
+#ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
   }
@@ -734,6 +734,7 @@ public:
   __inline__ /*__device__*/ void storageFinishRead(cl_uint2 pos)
   {
   }
+#endif
 };
 
 
@@ -1013,7 +1014,8 @@ public:
 };
 #endif
 
-template<uint TAvgElementSize, class TAdditionalData, uint TQueueSize, bool TCheckSet = false, template<uint > class MemAlloc = MemoryAlloc>
+#ifdef OPENCL_CODE
+template<uint TAvgElementSize, class TAdditionalData, uint TQueueSize, bool TCheckSet = false, template<uint> class MemAlloc = MemoryAlloc>
 class AllocStorage : private MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElementSize > 8 || AdditionalDataInfo<TAdditionalData>::size > 8 ? (sizeof(TAdditionalData)+15)/16*16 :  TAvgElementSize > 4 || AdditionalDataInfo<TAdditionalData>::size > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4))>
 {
 
@@ -1141,7 +1143,9 @@ public:
   }
 	#endif
 };
+#endif
 
+#ifdef OPENCL_CODE
 template<uint TAvgElementSize, uint TQueueSize, bool TCheckSet, template<uint > class MemAlloc>
 class AllocStorage<TAvgElementSize, void, TQueueSize, TCheckSet, MemAlloc> : private MemAlloc<TAvgElementSize*TQueueSize>
 {
@@ -1259,4 +1263,4 @@ public:
 	#endif
 };
 
- 
+ #endif
