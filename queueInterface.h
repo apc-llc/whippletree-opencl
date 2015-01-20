@@ -37,12 +37,21 @@ template<bool TWarnings = true>
 class Queue
 {
 public:
+	#ifdef OPENCL_CODE
   static const bool needTripleCall = false;
   static const bool supportReuseInit = false;
   static const int globalMaintainMinThreads = 0;
   static int globalMaintainSharedMemory(int Threads) { return 0; }
   static const int requiredShared = 0;
-
+	#else
+  const bool needTripleCall = false;
+  const bool supportReuseInit = false;
+  const int globalMaintainMinThreads = 0;
+  int globalMaintainSharedMemory(int Threads) { return 0; }
+  const int requiredShared = 0;
+	#endif
+  
+	#ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init() 
   {
     if(TWarnings) printf("Warning: Queue does not implement init\n");
@@ -139,6 +148,7 @@ public:
   { }
   __inline__ /*__device__*/ void globalMaintain()
   { }
+	#endif
 
   static std::string name()
   {
@@ -327,12 +337,13 @@ typedef Queue<false> ZeroQueue;
 template<class ProcInfo>
 class  IgnoreQueue : public ZeroQueue { };
 
-
+#ifdef OPENCL_CODE
 template<class Q>
 __kernel void initQueue(Q* q)
 {
   q->init();
 }
+#endif
 
 template<unsigned int Size>
 class Min16

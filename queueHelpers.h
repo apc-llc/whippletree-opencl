@@ -156,9 +156,9 @@ __inline__ /*__device__*/ uint& load(uint& dest, const volatile uint& src)
 #endif
 
 #ifdef OPENCL_CODE
-__inline__ /*__device__*/ cl_uint1& load(cl_uint1& dest, const volatile cl_uint1& src)
+__inline__ /*__device__*/ cl_uint& load(cl_uint& dest, const volatile cl_uint& src)
 {
-	dest.s[0] = src.s[0];
+	dest = src;
 	return dest;
 }
 #endif
@@ -186,9 +186,9 @@ __inline__ /*__device__*/ cl_uchar2& load(cl_uchar2& dest, const volatile cl_uch
 
 
 #ifdef OPENCL_CODE
-__inline__ /*__device__*/ cl_uchar1& load(cl_uchar1& dest, const volatile cl_uchar1& src)
+__inline__ /*__device__*/ cl_uchar& load(cl_uchar& dest, const volatile cl_uchar& src)
 {
-	dest.s[0] = src.s[0];
+	dest = src;
 	return dest;
 }
 #endif
@@ -219,9 +219,9 @@ __inline__ /*__device__*/ volatile uint& store(volatile uint& dest, const uint& 
 #endif
 
 #ifdef OPENCL_CODE
-__inline__ /*__device__*/ volatile cl_uint1& store(volatile cl_uint1& dest, const cl_uint1& src)
+__inline__ /*__device__*/ volatile cl_uint& store(volatile cl_uint& dest, const cl_uint& src)
 {
-	dest.s[0] = src.s[0];
+	dest = src;
 	return dest;
 }
 #endif
@@ -246,9 +246,9 @@ __inline__ /*__device__*/ volatile cl_uchar2& store(volatile cl_uchar2& dest, co
 #endif
 
 #ifdef OPENCL_CODE
-__inline__ /*__device__*/ volatile cl_uchar1& store(volatile cl_uchar1& dest, const cl_uchar1& src)
+__inline__ /*__device__*/ volatile cl_uchar& store(volatile cl_uchar& dest, const cl_uchar& src)
 {
-	dest.s[0] = src.s[0];
+	dest = src;
 	return dest;
 }
 #endif
@@ -432,7 +432,7 @@ struct selectVectorCopyType<8U>
 template <>
 struct selectVectorCopyType<4U>
 {
-	typedef cl_uint1 type;
+	typedef cl_uint type;
 };
 
 template <>
@@ -450,7 +450,7 @@ struct selectVectorCopyType<2U>
 template <>
 struct selectVectorCopyType<1U>
 {
-	typedef cl_uchar1 type;
+	typedef cl_uchar type;
 };
 
 #ifdef OPENCL_CODE
@@ -609,6 +609,7 @@ public:
     return "";
   }
   
+#ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
   }
@@ -665,6 +666,7 @@ public:
   __inline__ /*__device__*/ void storageFinishRead(cl_uint2 pos)
   {
   }
+	#endif
 };
 
 template<uint TElementSize, uint TQueueSize>
@@ -741,18 +743,20 @@ class QueueBuilder : public ::BasicQueue<TAdditionalData>, protected TQueueStora
   static const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
 
 public:
-
+#ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
     QueueStub::init();
     TQueueStorage::init();
   }
+#endif
 
   static std::string name()
   {
     return QueueStub::name() + TQueueStorage::name();
   }
 
+#ifdef OPENCL_CODE
   template<class Data>
   __inline__ /*__device__*/ bool enqueueInitial(Data data, TAdditionalData additionalData) 
   {
@@ -810,6 +814,7 @@ public:
     TQueueStorage::storageFinishRead(offset_take);
     return offset_take.s[1];
   }
+#endif
 };
 
 template<uint TElementSize, uint TQueueSize, class QueueStub, class TQueueStorage >
@@ -830,6 +835,7 @@ public:
     return QueueStub::name() + TQueueStorage::name();
   }
 
+#ifdef OPENCL_CODE
   template<class Data>
   __inline__ /*__device__*/ bool enqueueInitial(Data data) 
   {
@@ -885,12 +891,14 @@ public:
     TQueueStorage::storageFinishRead(offset_take);
     return offset_take.s[1];
   }
+#endif
 };
 
 
 
 
 
+#ifdef OPENCL_CODE
 //FIXME: class is not overflowsave / has no free!!!!
 template<uint MemSize>
 class MemoryAllocFastest
@@ -931,7 +939,9 @@ public:
   {
   }
 };
+#endif
 
+#ifdef OPENCL_CODE
 //FIXME: allocator is only safe for elements with are a power of two mulitple of 16 bytes (or smaller than 16 bytes)
 // and the multiple must be <= 32*16 bytes
 template<uint MemSize>
@@ -1001,6 +1011,7 @@ public:
     atomicAnd(flags + bigoffset, ~bits);
   }
 };
+#endif
 
 template<uint TAvgElementSize, class TAdditionalData, uint TQueueSize, bool TCheckSet = false, template<uint > class MemAlloc = MemoryAlloc>
 class AllocStorage : private MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElementSize > 8 || AdditionalDataInfo<TAdditionalData>::size > 8 ? (sizeof(TAdditionalData)+15)/16*16 :  TAvgElementSize > 4 || AdditionalDataInfo<TAdditionalData>::size > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4))>
@@ -1025,7 +1036,7 @@ public:
   {
     return std::string("Alloced");// + std::to_string((unsigned long long)AdditionalSize) + " " + std::to_string((unsigned long long)TAvgElementSize);
   }
-  
+  #ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
     MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElementSize > 8 || AdditionalDataInfo<TAdditionalData>::size > 8 ? (sizeof(TAdditionalData)+15)/16*16 :  TAvgElementSize > 4 || AdditionalDataInfo<TAdditionalData>::size > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4))>::init();
@@ -1086,7 +1097,7 @@ public:
       writeData(*data,  additionalData, pos);
   }
 
-  /*__inline__ /*__device__*/ void readData(void* data, TAdditionalData* additionalData, uint pos)
+  /*__inline__ __device__ void readData(void* data, TAdditionalData* additionalData, uint pos)
   {
     OffsetData_T offsetData;
     pos = pos%TQueueSize;
@@ -1128,6 +1139,7 @@ public:
       }
     }
   }
+	#endif
 };
 
 template<uint TAvgElementSize, uint TQueueSize, bool TCheckSet, template<uint > class MemAlloc>
@@ -1148,7 +1160,7 @@ public:
   {
     return "Alloced";
   }
-  
+  #ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
     MemAlloc<TAvgElementSize*TQueueSize>::init();
@@ -1159,7 +1171,7 @@ public:
          ((uint*)offsetStorage)[i] = 0;
     }
   }
-
+	
   template<class T>
   __inline__ /*__device__*/ uint prepareData(T data)
   {
@@ -1244,6 +1256,7 @@ public:
       }
     }
   }
+	#endif
 };
 
  
