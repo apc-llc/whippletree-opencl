@@ -34,7 +34,7 @@
 #include "queueInterface.h"
 #include "tools/common.h"
 #include "queueHelpers.h"
-//#include "segmentedStorage.cuh"
+#include "segmentedStorage.h"
 //#include "tools/bitonicSort.cuh"
 
   template<uint TQueueSize, bool TWarpOptimization = true, bool TAssertOnOverflow = true, bool TWithFence = false>
