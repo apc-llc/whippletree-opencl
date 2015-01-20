@@ -37,13 +37,15 @@
 //#include "segmentedStorage.cuh"
 //#include "tools/bitonicSort.cuh"
 
-#ifdef OPENCL_CODE
   template<uint TQueueSize, bool TWarpOptimization = true, bool TAssertOnOverflow = true, bool TWithFence = false>
   class QueueDistLocksStub
   {
   protected:
+#ifndef OPENCL_CODE
     static const uint QueueSize = TQueueSize;
-
+#else
+    const uint QueueSize = TQueueSize;
+#endif
     uint front, back;
     volatile int count;
     volatile uint locks[QueueSize];
@@ -58,11 +60,14 @@
     int dummy1[4]; 
 
 
+#ifndef OPENCL_CODE
     static std::string name()
     {
       return TWarpOptimization?"DistLocksWarpoptimized":"DistLocks";
     }
-    
+#endif
+
+#ifdef OPENCL_CODE    
     __inline__ /*__device__*/ void init() 
     {
       uint lid = get_global_id(0);
@@ -300,8 +305,8 @@
     {
       return count;
     }
-  };
 #endif
+  };
 
 #ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class TAdditionalData = void, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
@@ -315,11 +320,12 @@
   };
 #endif
 
-#ifdef OPENCL_CODE
+
   template<uint TElementSize, uint TQueueSize, class TAdditionalData = void, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
   class QueueDistLocks : public QueueBuilder<TElementSize, TQueueSize, TAdditionalData, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, QueueStorage<TElementSize, TAdditionalData, TQueueSize> >
   {
   public:
+#ifdef OPENCL_CODE
     __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
     {
       return QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::reserveRead(maxnum, only_read_all);
@@ -336,14 +342,14 @@
       QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::finishRead(id, num);
       QueueStorage<TElementSize, TAdditionalData, TQueueSize>::storageFinishRead(make_uint2(id,num) );
     }
-  };
 #endif
+  };
   
-#ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, bool TWarpOptimization, bool TAssertOnOverflow>
   class QueueDistLocks<TElementSize, TQueueSize, void, TWarpOptimization, TAssertOnOverflow> : public QueueBuilder<TElementSize, TQueueSize, void, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, QueueStorage<TElementSize, void, TQueueSize> >
   {
      public:
+#ifdef OPENCL_CODE
     __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
     {
       return QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::reserveRead(maxnum, only_read_all);
@@ -360,14 +366,14 @@
       QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::finishRead(id, num);
       QueueStorage<TElementSize, void, TQueueSize>::storageFinishRead(make_uint2(id,num) );
     }
-  };
 #endif
+  };
 
   
-#ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class TAdditionalData, class ExternalStorage, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
   class QueueDistLocksExternal : public QueueBuilder<TElementSize, TQueueSize, TAdditionalData, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, SegmentedStorage::SegmentedQueueStorage<TElementSize, TAdditionalData, TQueueSize, ExternalStorage> >
   {
+#ifdef OPENCL_CODE
   public:
     __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
     {
@@ -385,13 +391,13 @@
       QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::finishRead(id, num);
       SegmentedStorage::SegmentedQueueStorage<TElementSize, TAdditionalData, TQueueSize, ExternalStorage>::storageFinishRead(make_uint2(id,num) );
     }
-  };
 #endif
+  };
 
-#ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class ExternalStorage, bool TWarpOptimization, bool TAssertOnOverflow>
   class QueueDistLocksExternal<TElementSize, TQueueSize, void, ExternalStorage, TWarpOptimization, TAssertOnOverflow> : public QueueBuilder<TElementSize, TQueueSize, void, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, SegmentedStorage::SegmentedQueueStorage<TElementSize, void, TQueueSize, ExternalStorage> >
   {
+#ifdef OPENCL_CODE
      public:
     __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
     {
@@ -409,11 +415,10 @@
       QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>::finishRead(id, num);
       SegmentedStorage::SegmentedQueueStorage<TElementSize, void, TQueueSize, ExternalStorage>::storageFinishRead(make_uint2(id,num) );
     }
-  };
 #endif
+  };
 
 
-#ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class TAdditionalData = void, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
   class QueueDistLocksSortable : public QueueBuilder<TElementSize, TQueueSize, TAdditionalData, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow, true>, QueueStorage<TElementSize, TAdditionalData, TQueueSize> >
   {
@@ -424,6 +429,7 @@
 
     typedef typename StorageElementTyping<TElementSize>::Type QueueData_t;
   public:
+#ifdef OPENCL_CODE
 
     __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
     {
@@ -626,14 +632,14 @@
       }
       return true;
     }
-  };
 #endif
+  };
 
-#ifdef OPENCL_CODE
+//#ifdef OPENCL_CODE
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocks_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, false,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksOpt_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, true,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksNoOverflow_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, false,false> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksNoOverflowOpt_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, true,false> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksSortable_t : public QueueDistLocksSortable<TElementSize, TQueueSize, TAdditionalData, false,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksSortableOpt_t : public QueueDistLocksSortable<TElementSize, TQueueSize, TAdditionalData, true,true> { };
-#endif
+//#endif
