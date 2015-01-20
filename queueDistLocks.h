@@ -303,7 +303,7 @@
   };
 #endif
 
-
+#ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class TAdditionalData = void, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
   class QueueDistUnequalLocks : public QueueBuilder<TElementSize, TQueueSize, TAdditionalData, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, AllocStorage<TElementSize, TAdditionalData, TQueueSize> >
   {
@@ -313,6 +313,7 @@
   class QueueDistUnequalLocks<TElementSize, TQueueSize, void, TWarpOptimization, TAssertOnOverflow> : public QueueBuilder<TElementSize, TQueueSize, void, QueueDistLocksStub<TQueueSize, TWarpOptimization, TAssertOnOverflow>, AllocStorage<TElementSize, void, TQueueSize> >
   {
   };
+#endif
 
 #ifdef OPENCL_CODE
   template<uint TElementSize, uint TQueueSize, class TAdditionalData = void, bool TWarpOptimization = true, bool TAssertOnOverflow = true>
@@ -628,9 +629,11 @@
   };
 #endif
 
+#ifdef OPENCL_CODE
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocks_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, false,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksOpt_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, true,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksNoOverflow_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, false,false> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksNoOverflowOpt_t : public QueueDistLocks<TElementSize, TQueueSize, TAdditionalData, true,false> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksSortable_t : public QueueDistLocksSortable<TElementSize, TQueueSize, TAdditionalData, false,true> { };
 template<uint TElementSize, uint TQueueSize, class TAdditionalData> class QueueDistLocksSortableOpt_t : public QueueDistLocksSortable<TElementSize, TQueueSize, TAdditionalData, true,true> { };
+#endif
