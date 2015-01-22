@@ -72,7 +72,7 @@ extern cl_device_id *devices;
 //ALL CUDA HEADERS TO BE REWRITTEN
 
 #include "queueDistLocks.h"
-//#include "queueShared.cuh"
+#include "queueShared.h"
 //#include "queuingPerProc.cuh"
 #include "techniqueMegakernel.h"
 //#include "techniqueKernels.cuh"
