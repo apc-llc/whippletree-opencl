@@ -73,7 +73,7 @@ extern cl_device_id *devices;
 
 #include "queueDistLocks.h"
 #include "queueShared.h"
-//#include "queuingPerProc.cuh"
+#include "queuingPerProc.h"
 #include "techniqueMegakernel.h"
 //#include "techniqueKernels.cuh"
 //#include "techniqueDynamicParallelism.cuh"

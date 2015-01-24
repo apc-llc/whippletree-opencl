@@ -49,40 +49,40 @@ struct SharedBaseQueue
   uint headerVerstaile1;
 
   typename PROCEDURE::ExpectedData queueData[NumElements];
-
-  __inline__ __device__ void clean(int tid, int threads) 
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void clean(int tid, int threads) 
   {
     for(int i = tid; i < 4; i+=threads)
       reinterpret_cast<uint*>(this)[i] = 0;
   }
-  __inline__ __device__ void writeHeader()
+  __inline__ /*__device__*/ void writeHeader()
   {
     procId_maxnum = (ProcId << 16) | NumElements;
   }
-  __inline__ __device__ int procId() const
+  __inline__ /*__device__*/ int procId() const
   {
     return procId_maxnum >> 16;
   }
-  __inline__ __device__ uint numElement() const
+  __inline__ /*__device__*/ uint numElement() const
   {
     return procId_maxnum & 0xFFFF;
   }
-  __inline__ __device__ int num() const
+  __inline__ /*__device__*/ int num() const
   {
     return min(counter,NumElements);
   }
-  __inline__ __device__ int count() const
+  __inline__ /*__device__*/ int count() const
   {
     return counter;
   }
 
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data) 
   {
     return enqueue<1>(&data);
   }
 
   template<uint ThreadsPerElement>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data) 
   {
     if(TWarpOptimization)
     {
@@ -139,7 +139,7 @@ struct SharedBaseQueue
     }
   }
 
-  __inline__ __device__ int dequeue(void* data, int maxnum)
+  __inline__ /*__device__*/ int dequeue(void* data, int maxnum)
   {
     int n = counter;
     __syncthreads();
@@ -154,14 +154,14 @@ struct SharedBaseQueue
     return take;
   }
 
-  __inline__ __device__ int reserveRead(int maxnum, bool only_read_all = false)
+  __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
   {
     int n = counter;
     if(only_read_all && n < maxnum)
       return 0;
     return max(0,min(n, maxnum));
   }
-  __inline__ __device__ int startRead(typename PROCEDURE::ExpectedData*& data, int num)
+  __inline__ /*__device__*/ int startRead(typename PROCEDURE::ExpectedData*& data, int num)
   {
     int o = counter - num;
     //if(threadIdx.x == 0)
@@ -169,7 +169,7 @@ struct SharedBaseQueue
     data = queueData + o;
     return o;
   }
-  __inline__ __device__ void finishRead(int id, int num)
+  __inline__ /*__device__*/ void finishRead(int id, int num)
   {
     __syncthreads();
     int c = counter;
@@ -198,7 +198,7 @@ struct SharedBaseQueue
     }
     __syncthreads();
   }
-
+	#endif
   static std::string name() 
   {
     return std::string("SharedBaseQueue") + (TWarpOptimization?"Warpoptimized":"");
@@ -219,11 +219,19 @@ public:
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
+	#ifdef OPENCL_CODE
+     const int Size = 0;
+     const int FinalSize = 0;
+     const int FixedSize = 0;
+     const int SumSize = 0;
+     const int CountDynamicSize = 0;
+	#else
     static const int Size = 0;
     static const int FinalSize = 0;
     static const int FixedSize = 0;
     static const int SumSize = 0;
     static const int CountDynamicSize = 0;
+	#endif
   };
 };
 
@@ -231,7 +239,11 @@ public:
 template< template<typename> class SQTraits,class Procedure>
 struct GetTraitQueueSize
 {
+	#ifndef OPENCL_CODE
   static const int QueueSize = SQTraits<Procedure>::QueueSize;
+	#else
+  const int QueueSize = SQTraits<Procedure>::QueueSize;
+	#endif
 };
 
 //template<template<typename> class TWrapper, template<typename> class SQTraits, class Procedure>
@@ -251,11 +263,19 @@ class SQElementTraitsPeel
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
-    static const int Size = Make16<TNumElements * sizeof(typename Proc::ExpectedData) + SharedBaseQueue<Proc, 0, TNumElements, true>::HeaderSize>::Res;
+	#ifdef OPENCL_CODE
+	const int Size = Make16<TNumElements * sizeof(typename Proc::ExpectedData) + SharedBaseQueue<Proc, 0, TNumElements, true>::HeaderSize>::Res;
+    const int NumElements = TNumElements;
+    const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+    const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
+    const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#else    
+	static const int Size = Make16<TNumElements * sizeof(typename Proc::ExpectedData) + SharedBaseQueue<Proc, 0, TNumElements, true>::HeaderSize>::Res;
     static const int NumElements = TNumElements;
     static const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
     static const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
     static const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#endif
   };
 
 };
@@ -285,11 +305,19 @@ public:
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
+	#ifdef OPENCL_CODE
+    const int Size = Make16<TNumElements * sizeof(typename Proc::ExpectedData) + SharedBaseQueue<Proc, 0, TNumElements, true>::HeaderSize>::Res;
+    const int NumElements = TNumElements;
+    const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+    const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
+    const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#else
     static const int Size = Make16<TNumElements * sizeof(typename Proc::ExpectedData) + SharedBaseQueue<Proc, 0, TNumElements, true>::HeaderSize>::Res;
     static const int NumElements = TNumElements;
     static const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
     static const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
     static const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#endif
   };
 };
 
@@ -303,11 +331,19 @@ public:
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
-    static const int Size = Make16<TNum * sizeof(typename TProc::ExpectedData) + SharedBaseQueue<Proc, 0, TNum, true>::HeaderSize>::Res;
+	#ifdef OPENCL_CODE    
+	const int Size = Make16<TNum * sizeof(typename TProc::ExpectedData) + SharedBaseQueue<Proc, 0, TNum, true>::HeaderSize>::Res;
+    const int NumElements = TNum;
+    const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+    const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
+    const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#else
+	static const int Size = Make16<TNum * sizeof(typename TProc::ExpectedData) + SharedBaseQueue<Proc, 0, TNum, true>::HeaderSize>::Res;
     static const int NumElements = TNum;
     static const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
     static const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
     static const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#endif
   };
 };
 template<class TProc, int TSize, class TNextSizeSelection = EndSharedQueue>
@@ -320,11 +356,19 @@ public:
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
+	#ifdef OPENCL_CODE
+    const int Size =  Make16<TSize>::Res;
+    const int NumElements = (TSize -  SharedBaseQueue<Proc, 0, 4, true>::HeaderSize) / sizeof(typename TProc::ExpectedData);
+    const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+    const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
+    const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#else
     static const int Size =  Make16<TSize>::Res;
     static const int NumElements = (TSize -  SharedBaseQueue<Proc, 0, 4, true>::HeaderSize) / sizeof(typename TProc::ExpectedData);
     static const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
     static const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::FixedSize + Size;
     static const int CountDynamicSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::CountDynamicSize;
+	#endif
   };
 };
 
@@ -338,11 +382,19 @@ public:
   template<class RootOverallNode, int MaxSize, int PrevSize = 0>
   struct Overall
   {
+	#ifdef OPENCL_CODE
+	const int CountDynamicSize = Make16<NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize>::CountDynamicSize + TRemainingSizeRatio>::Res;
+    const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize>::FixedSize;
+    const int Size = Make16<((MaxSize - RootOverallNode::FixedSize) / RootOverallNode::CountDynamicSize - SharedBaseQueue<Proc, 0, 4, true>::HeaderSize)/ sizeof(typename TProc::ExpectedData) * sizeof(typename TProc::ExpectedData) + SharedBaseQueue<Proc, 0, 4, true>::HeaderSize>::Res;
+    const int NumElements = (Size -  SharedBaseQueue<Proc, 0, 4, true>::HeaderSize) / sizeof(typename TProc::ExpectedData);
+    const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+	#else
     static const int CountDynamicSize = Make16<NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize>::CountDynamicSize + TRemainingSizeRatio>::Res;
     static const int FixedSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize>::FixedSize;
     static const int Size = Make16<((MaxSize - RootOverallNode::FixedSize) / RootOverallNode::CountDynamicSize - SharedBaseQueue<Proc, 0, 4, true>::HeaderSize)/ sizeof(typename TProc::ExpectedData) * sizeof(typename TProc::ExpectedData) + SharedBaseQueue<Proc, 0, 4, true>::HeaderSize>::Res;
     static const int NumElements = (Size -  SharedBaseQueue<Proc, 0, 4, true>::HeaderSize) / sizeof(typename TProc::ExpectedData);
     static const int SumSize = NextSQElement:: template Overall<RootOverallNode, MaxSize, PrevSize + Size>::SumSize + Size;
+	#endif
   };
 };
 
@@ -350,104 +402,118 @@ public:
 template<class SelectProc, class ThisProc, class BaseQ, class NextSharedQueueElement>
 struct SQueueElementSelectAndForward
 {
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename SelectProc::ExpectedData data)
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename SelectProc::ExpectedData data)
   {
     //forward
     return NextSharedQueueElement:: template enqueue<SelectProc>(sQueueStartPointer, data);
   }
   template<int NumThreads>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename SelectProc::ExpectedData* data)
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename SelectProc::ExpectedData* data)
   {
     //forward
     return NextSharedQueueElement:: template enqueue<NumThreads,SelectProc>(sQueueStartPointer, data);
   }
 
-  __inline__ __device__ static void finishRead(char* sQueueStartPointer, BaseQ* useQ, int id, int num)
+  __inline__ /*__device__*/ static void finishRead(char* sQueueStartPointer, BaseQ* useQ, int id, int num)
   {
     //forward
     return NextSharedQueueElement:: template finishRead <SelectProc> (sQueueStartPointer, id, num);
   }
+	#endif
 };
 
 template<class MatchProc, class BaseQ, class NextSharedQueueElement>
 struct SQueueElementSelectAndForward<MatchProc,MatchProc,BaseQ,NextSharedQueueElement>
 {
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData data)
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData data)
   {
     //enqueue
     return useQ->enqueue(data);
   }
   template<int NumThreads>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData* data)
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData* data)
   {
     //enqueue
     return useQ-> template enqueue<NumThreads>(data);
   }
-     __inline__ __device__ static void finishRead(char* sQueueStartPointer, BaseQ* useQ,  int id, int num)
+     __inline__ /*__device__*/ static void finishRead(char* sQueueStartPointer, BaseQ* useQ,  int id, int num)
    {
       return useQ -> finishRead(id, num);
    }
+	#endif
 };
 
 
 template<template<typename> class Wrapper, class MatchProc, class BaseQ, class NextSharedQueueElement>
 struct SQueueElementSelectAndForward<MatchProc,Wrapper<MatchProc>,BaseQ,NextSharedQueueElement>
 {
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData data)
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData data)
   {
     //enqueue
     return useQ->enqueue(data);
   }
   template<int NumThreads>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData* data)
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, BaseQ* useQ, typename MatchProc::ExpectedData* data)
   {
     //enqueue
     return useQ-> template enqueue<NumThreads>(data);
   }
-     __inline__ __device__ static void finishRead(char* sQueueStartPointer, BaseQ* useQ,  int id, int num)
+     __inline__ /*__device__*/ static void finishRead(char* sQueueStartPointer, BaseQ* useQ,  int id, int num)
    {
       return useQ -> finishRead(id, num);
    }
+	#endif
 };
 
 template<class ProcInfo, class Procedure, int MaxSize, class TSQDescription, class RootOverallNode, bool WarpOptimization, int PrevSize = 0>
 class SharedQueueElement 
 {
   typedef typename TSQDescription :: Proc MyProc;
+	#ifdef OPENCL_CODE
+  const int Size = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: Size;
+  const int NumElements = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: NumElements;
+
+	#else	
+
   static const int Size = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: Size;
   static const int NumElements = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: NumElements;
+	#endif
   typedef SharedQueueElement<ProcInfo, typename TSQDescription::NextSQElement :: Proc, MaxSize, typename TSQDescription::NextSQElement, RootOverallNode, WarpOptimization, PrevSize + Size> NextSharedQueueElement;
   typedef SharedBaseQueue<MyProc, findProcId<ProcInfo, MyProc>::value, NumElements, WarpOptimization> MyBaseQueue;
-
-  __inline__ __device__ 
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ 
   static MyBaseQueue* myQ(char *sQueueStartPointer) 
   {
     return reinterpret_cast<MyBaseQueue* >(sQueueStartPointer + PrevSize);
   }
+	#endif
 
 public: 
   static const int requiredShared = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: SumSize;
   
   static_assert(requiredShared <= MaxSize, "Shared Queue generated from traits is larger than specified max QueueSize");
-
-  __inline__ __device__ static void init(char* sQueueStartPointer)
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ static void init(char* sQueueStartPointer)
   {
     myQ(sQueueStartPointer)->clean(threadIdx.x, blockDim.x);
     myQ(sQueueStartPointer)->writeHeader();
     NextSharedQueueElement::init(sQueueStartPointer);
   }
-  __inline__ __device__ static void maintain(char* sQueueStartPointer)
+  __inline__ /*__device__*/ static void maintain(char* sQueueStartPointer)
   { }
 
 
   template<class Procedure_>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData data) 
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData data) 
   { 
     return SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: enqueue(sQueueStartPointer, myQ(sQueueStartPointer), data);
   }
 
   template<uint ThreadsPerElement, class Procedure_>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData* data) 
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData* data) 
   { 
     return SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: template enqueue<ThreadsPerElement>(sQueueStartPointer, myQ(sQueueStartPointer), data);
   }
@@ -455,7 +521,7 @@ public:
 
 
   template<bool MultiProcedure>
-  __inline__ __device__ static int dequeue(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80)
+  __inline__ /*__device__*/ static int dequeue(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80)
   { 
     int maxElements = getElementCount<MyProc,MultiProcedure>();
     if(maxShared != -1)
@@ -477,7 +543,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ static int dequeueSelected(char* sQueueStartPointer, void*& data, int procId, int maxNum = -1, int minPercent = 80)
+  __inline__ /*__device__*/ static int dequeueSelected(char* sQueueStartPointer, void*& data, int procId, int maxNum = -1, int minPercent = 80)
   {
     int maxElements = getElementCount<MyProc>();
     if(maxNum != -1)
@@ -498,7 +564,7 @@ public:
   }
 
   template<bool MultiProcedure>
-   __inline__ __device__ static int2 dequeueStartRead(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80)
+   __inline__ /*__device__*/ static int2 dequeueStartRead(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80)
   { 
     int maxElements = getElementCount<MyProc, MultiProcedure>();
     if(maxShared != -1)
@@ -524,11 +590,11 @@ public:
 
 
   template<class Procedure_>
-  __inline__ __device__ static void finishRead(char* sQueueStartPointer, int id, int num)
+  __inline__ /*__device__*/ static void finishRead(char* sQueueStartPointer, int id, int num)
   {   
     SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: finishRead(sQueueStartPointer, myQ(sQueueStartPointer), id, num);
   }
-
+	#endif
   static std::string name()
   { 
     return std::to_string((long long)findProcId<ProcInfo,MyProc>::value) + "(" + std::to_string((long long)NumElements) + ")" + "," + NextSharedQueueElement :: name();
@@ -541,21 +607,25 @@ template<class ProcInfo, int MaxSize,  class TSQDescription, class RootOverallNo
 class SharedQueueElement<ProcInfo, void, MaxSize, TSQDescription,RootOverallNode,WarpOptimization,PrevSize>
 {
 public: 
-  static const int requiredShared = 0;
-  __inline__ __device__ static void init(char* sQueueStartPointer) { }
-  __inline__ __device__ static void maintain(char* sQueueStartPointer) { }
+	#ifdef OPENCL_CODE
+   const int requiredShared = 0;
+  __inline__ /*__device__*/ static void init(char* sQueueStartPointer) { }
+  __inline__ /*__device__*/ static void maintain(char* sQueueStartPointer) { }
   template<class Procedure>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData otherdata) { return false; }
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData otherdata) { return false; }
   template<uint ThreadsPerElement, class Procedure>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData* data) { return false; }
+  __inline__ /*__device__*/ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData* data) { return false; }
   template<bool MultiProcedure>
-  __inline__ __device__ static int dequeue(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80) { return 0; }
+  __inline__ /*__device__*/ static int dequeue(char* sQueueStartPointer, void*& data, int* procId, int maxShared = -1, int minPercent = 80) { return 0; }
   template<bool MultiProcedure>
-  __inline__ __device__ static int dequeueSelected(char* sQueueStartPointer, void*& data, int procId, int maxNum = -1, int minPercent = 80) { return 0; }
+  __inline__ /*__device__*/ static int dequeueSelected(char* sQueueStartPointer, void*& data, int procId, int maxNum = -1, int minPercent = 80) { return 0; }
   template<bool MultiProcedure>
-   __inline__ __device__ static int2 dequeueStartRead(char* sQueueStartPointer, void*& data, int* procId_info, int maxShared = -1, int minPercent = 80) { return make_int2(0,0);}
+   __inline__ /*__device__*/ static int2 dequeueStartRead(char* sQueueStartPointer, void*& data, int* procId_info, int maxShared = -1, int minPercent = 80) { return make_int2(0,0);}
   template<class Procedure>
-  __inline__ __device__ static void finishRead(char* sQueueStartPointer, int id, int num) { }
+  __inline__ /*__device__*/ static void finishRead(char* sQueueStartPointer, int id, int num) { }
+	#else
+	static const int requiredShared = 0;
+	#endif
   static std::string name() { return ""; }
 };
 
@@ -597,26 +667,33 @@ class  SharedCombinerQueue : protected ExternalQueue<ProcedureInfo>
   typedef SharedQueue<ProcedureInfo> SharedQ;
 
 public:
+	#ifdef OPENCL_CODE
+   const bool needTripleCall = false;
+   const bool supportReuseInit = ExtQ::supportReuseInit;
+   const int requiredShared = ExtQ::requiredShared + SharedQ :: requiredShared;
+   const int globalMaintainMinThreads = ExtQ::globalMaintainMinThreads;
+	#else
   static const bool needTripleCall = false;
   static const bool supportReuseInit = ExtQ::supportReuseInit;
   static const int requiredShared = ExtQ::requiredShared + SharedQ :: requiredShared;
   static const int globalMaintainMinThreads = ExtQ::globalMaintainMinThreads;
+	#endif
   static int globalMaintainSharedMemory(int Threads) { return ExtQ::globalMaintainSharedMemory(Threads); }
     
-
-  __inline__ __device__ void init() 
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void init() 
   {
     ExtQ :: init();
   }
   
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData data) 
   {
     return ExtQ :: template enqueueInitial<PROCEDURE>(data);
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data) 
   {
     extern __shared__ uint s_data[];
     if(GotoGlobalChance == 0 || whippletree::random::warp_check(100-GotoGlobalChance))
@@ -629,7 +706,7 @@ public:
   }
 
   template<int threads, class PROCEDURE>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data) 
   {
     extern __shared__ uint s_data[];
     if(GotoGlobalChance == 0 || whippletree::random::warp_check(100-GotoGlobalChance))
@@ -642,7 +719,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeue(void*& data, int*& procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int d = SharedQ :: template dequeue<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, SharedQueueFillupThreshold);
@@ -653,7 +730,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueSelected(void*& data, int procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int d = SharedQ :: dequeueSelected<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, SharedQueueFillupThreshold);
@@ -664,7 +741,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int2 d = SharedQ :: dequeueStartRead<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, SharedQueueFillupThreshold);
@@ -690,7 +767,7 @@ public:
   }
 
    template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead1(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead1(void*& data, int*& procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int2 d = SharedQ :: dequeueStartRead<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, SharedQueueFillupThreshold);
@@ -698,13 +775,13 @@ public:
     return d.x;
   }
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead2(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead2(void*& data, int*& procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     return ExtQ :: template dequeueStartRead<MultiProcedure>(reinterpret_cast<char*>(s_data), data, procId, maxShared);
   }
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead3(void*& data, int*& procId, int maxShared = -1)
+  __inline__ /*__device__*/ int dequeueStartRead3(void*& data, int*& procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int2 d = SharedQ :: dequeueStartRead<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, 0);
@@ -712,18 +789,18 @@ public:
     return d.x;
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead1(int id,  int num)
+  __inline__ /*__device__*/ void finishRead1(int id,  int num)
   {
     extern __shared__ uint s_data[];
     SharedQ :: template finishRead<PROCEDURE>(reinterpret_cast<char*>(s_data), id & 0x3FFFFFFF, num);
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead2(int id,  int num)
+  __inline__ /*__device__*/ void finishRead2(int id,  int num)
   {
     ExtQ :: template finishRead<PROCEDURE>(id, num);
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead3(int id,  int num)
+  __inline__ /*__device__*/ void finishRead3(int id,  int num)
   {
     finishRead1<PROCEDURE>(id, num);
   }
@@ -735,12 +812,12 @@ public:
     return ExtQ :: template reserveRead <PROCEDURE> (data, procId, maxShared);
   }*/
   template<class PROCEDURE>
-  __inline__ __device__ int startRead(void*& data, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int num)
   {
     return  ExtQ :: template startRead<PROCEDURE>(data, num);
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead(int id,  int num)
+  __inline__ /*__device__*/ void finishRead(int id,  int num)
   {
     extern __shared__ uint s_data[];
     if(id & 0x40000000)
@@ -757,41 +834,41 @@ public:
     }
   }
 
-  __inline__ __device__ void numEntries(int* counts)
+  __inline__ /*__device__*/ void numEntries(int* counts)
   {
     ExtQ :: numEntries(counts);
   }
 
 
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   {
     ExtQ :: record();
   }
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   {
     ExtQ :: reset();
   }
 
 
-  __inline__ __device__ void workerStart()
+  __inline__ /*__device__*/ void workerStart()
   { 
     extern __shared__ uint s_data[];
     SharedQ :: init(reinterpret_cast<char*>(s_data));
   }
-  __inline__ __device__ void workerMaintain()
+  __inline__ /*__device__*/ void workerMaintain()
   { 
     extern __shared__ uint s_data[];
     SharedQ :: maintain(reinterpret_cast<char*>(s_data));
   }
-  __inline__ __device__ void workerEnd()
+  __inline__ /*__device__*/ void workerEnd()
   { 
     //TODO: what should we do here? enqueue shared elements to global?
   }
-  __inline__ __device__ void globalMaintain()
+  __inline__ /*__device__*/ void globalMaintain()
   {
     ExtQ :: globalMaintain();
   }
-
+	#endif
   static std::string name()
   {
     if(GotoGlobalChance > 0)
