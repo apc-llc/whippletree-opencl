@@ -31,32 +31,37 @@
 //
 
 #pragma once
-#include "queueInterface.cuh"
-#include "tools/common.cuh"
-#include "queueHelpers.cuh"
+#include "queueInterface.h"
+#include "tools/common.h"
+#include "queueHelpers.h"
 
 template<uint TElementSize, uint TQueueSize, class TAdditionalData >
 class QueueExternalFetch : public ::BasicQueue<void>, protected QueueStorage<TElementSize, void, TQueueSize>
 {
+	#ifdef OPENCL_CODE
+  const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+	#else
   static const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+	#endif
   int count;
   int readCount;
   int maxcount;
 public:
 
-  __inline__ __device__ void init()
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void init()
   {
     QueueStorage<TElementSize, void, TQueueSize>::init();
     maxcount = readCount = count = 0;
   }
-
+	#endif
   static std::string name()
   {
     return "ExternalFetch";
   }
-
+	#ifdef OPENCL_CODE
   template<class Data>
-  __inline__ __device__ bool enqueueInitial(Data data) 
+  __inline__ /*__device__*/ bool enqueueInitial(Data data) 
   {
     int pos = atomicAdd(&maxcount, 1);
     uint info = prepareData(data);
@@ -65,13 +70,13 @@ public:
   }
 
   template<class Data>
-  __device__ bool enqueue(Data data) 
+  /*__device__*/ bool enqueue(Data data) 
   {        
     printf("ERROR QueueExternalFetch does not support enqueue\n");
     return false;
   }
 
-  __inline__ __device__ int dequeue(void* data, int num)
+  __inline__ /*__device__*/ int dequeue(void* data, int num)
   {
     __shared__ uint2 offset_take;
     if(threadIdx.x == 0)
@@ -96,7 +101,7 @@ public:
     return offset_take.y;
   }
 
-  __inline__ __device__ int reserveRead(int maxnum, bool only_read_all = false)
+  __inline__ /*__device__*/ int reserveRead(int maxnum, bool only_read_all = false)
   {
     __shared__ int num;
     if(threadIdx.x == 0)
@@ -118,7 +123,7 @@ public:
     __syncthreads();
     return num;
   }
-  __inline__ __device__ int startRead(void*& data, int pos, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int pos, int num)
   {
     __shared__ int offset;
     if(num > 0)
@@ -132,21 +137,22 @@ public:
     return num;
   }
 
-  __inline__ __device__ void finishRead(int id, int num)
+  __inline__ /*__device__*/ void finishRead(int id, int num)
   {
   }
 
-  __inline__ __device__ uint size()
+  __inline__ /*__device__*/ uint size()
   {
     return max(maxcount - readCount, 0);
   }
 
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   {
   }
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   {
     count = 0;
     readCount = 0;
   }
+  #endif
 };

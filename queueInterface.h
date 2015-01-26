@@ -37,7 +37,7 @@ template<bool TWarnings = true>
 class Queue
 {
 public:
-	#ifdef OPENCL_CODE
+	#ifndef OPENCL_CODE
   static const bool needTripleCall = false;
   static const bool supportReuseInit = false;
   static const int globalMaintainMinThreads = 0;
