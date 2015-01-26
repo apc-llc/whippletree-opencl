@@ -31,12 +31,12 @@
 //
 
 #pragma once
-#include "queueExternalFetch.cuh"
-#include "queueInterface.cuh"
-#include "procedureInterface.cuh"
-#include "procinfoTemplate.cuh"
-#include "tools/common.cuh"
-#include "random.cuh"
+#include "queueExternalFetch.h"
+#include "queueInterface.h"
+#include "procedureInterface.h"
+#include "procinfoTemplate.h"
+#include "tools/common.h"
+#include "random.h"
 
 
 template<class PROCINFO, class PROCEDURE,  template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalPackageQueue, uint PacakgeQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalItemQueue, uint ItemQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InitialDataQueue, uint InitialDataQueueSize, bool Itemized, bool InitialQueue >
@@ -45,29 +45,45 @@ struct QueueSelector;
 template<class PROCINFO, class PROCEDURE, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalPackageQueue, uint PacakgeQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalItemQueue, uint ItemQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InitialDataQueue, uint InitialDataQueueSize >
 struct QueueSelector<PROCINFO, PROCEDURE, InternalPackageQueue, PacakgeQueueSize, InternalItemQueue, ItemQueueSize, InitialDataQueue, InitialDataQueueSize, true, false> : public InternalItemQueue<sizeof(typename PROCEDURE::ExpectedData), ItemQueueSize, void>
 {
+	#ifdef OPENCL_CODE
+  const bool Itemized = true;
+	#else
   static const bool Itemized = true;
+  	#endif
   typedef PROCINFO ProcInfo;
   typedef PROCEDURE Procedure;
 
-  __inline__ __device__ void record() { }
-  __inline__ __device__ void reset() { }
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void record() { }
+  __inline__ /*__device__*/ void reset() { }
+	#endif
 };
 template<class PROCINFO, class PROCEDURE, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalPackageQueue, uint PackageQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalItemQueue, uint ItemQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InitialDataQueue, uint InitialDataQueueSize >
 struct QueueSelector<PROCINFO, PROCEDURE, InternalPackageQueue, PackageQueueSize, InternalItemQueue, ItemQueueSize, InitialDataQueue, InitialDataQueueSize, false, false> : public InternalPackageQueue<sizeof(typename PROCEDURE::ExpectedData), PackageQueueSize, void>
 {
+	#ifdef OPENCL_CODE
+  const bool Itemized = false;
+	#else
   static const bool Itemized = false;
+  	#endif
   typedef PROCINFO ProcInfo;
   typedef PROCEDURE Procedure;
 
-  __inline__ __device__ void record() { }
-  __inline__ __device__ void reset() { }
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void record() { }
+  __inline__ /*__device__*/ void reset() { }
+  	#endif
 };
 
 
 template<class PROCINFO, class PROCEDURE, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalPackageQueue, uint PackageQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InternalItemQueue, uint ItemQueueSize, template<uint TElementSize, uint TQueueSize, class TAdditionalData> class InitialDataQueue, uint InitialDataQueueSize, bool TItemized >
 struct QueueSelector<PROCINFO, PROCEDURE, InternalPackageQueue, PackageQueueSize, InternalItemQueue, ItemQueueSize, InitialDataQueue, InitialDataQueueSize, TItemized, true> : public InitialDataQueue<sizeof(typename PROCEDURE::ExpectedData), InitialDataQueueSize, void>
 {
+  #ifdef OPENCL_CODE
+  const bool Itemized = TItemized;
+  #else
   static const bool Itemized = TItemized;
+  #endif
   typedef PROCINFO ProcInfo;
   typedef PROCEDURE Procedure;
 };
@@ -97,15 +113,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
     const int _itemizedThreshold;
     int _maxShared;
   public:
-    __inline__ __device__ Visitor(int*& procId, void*& data, int minItems, int maxShared) : 
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ Visitor(int*& procId, void*& data, int minItems, int maxShared) : 
          _haveSomething(0), _procId(procId), _data(data), _itemizedThreshold(minItems), _maxShared(maxShared)
     { }
-    __inline__ __device__ uint haveSomething() const
+    __inline__ /*__device__*/ uint haveSomething() const
     {
       return _haveSomething;
     }
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       typedef typename TQAttachment::Procedure Procedure;
       const bool Itemized = TQAttachment::Itemized;
@@ -144,6 +161,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
         return _haveSomething > 0;
       }
     }
+    #endif
   };
 
 
@@ -156,15 +174,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
     const int _itemizedThreshold;
     int _maxShared;
   public:
-    __inline__ __device__ ReadVisitor(int*& procId, void*& data, int minItems, int maxShared) : 
+    #ifdef OPENCL_CODE
+    __inline__ /*__device__*/ ReadVisitor(int*& procId, void*& data, int minItems, int maxShared) : 
          _haveSomething(0), _procId(procId), _data(data), _itemizedThreshold(minItems), _maxShared(maxShared)
     { }
-    __inline__ __device__ uint haveSomething() const
+    __inline__ /*__device__*/ uint haveSomething() const
     {
       return _haveSomething;
     }
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       typedef typename TQAttachment::Procedure Procedure;
       const bool Itemized = TQAttachment::Itemized;
@@ -209,6 +228,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
       }
       return false;
     }
+    #endif
   };
 
   struct NameVisitor
@@ -226,12 +246,14 @@ class PerProcedureVersatileQueue : public ::Queue<>
 
   struct InitVisitor
   {
+	#ifdef OPENCL_CODE
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       q.init();
       return false;
     }
+    #endif
   };
 
   template<class TProcedure>
@@ -239,13 +261,15 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     typename TProcedure::ExpectedData& data;
     bool res;
-    __inline__ __device__ EnqueueInitialVisitor(typename TProcedure::ExpectedData& d) : data(d) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ EnqueueInitialVisitor(typename TProcedure::ExpectedData& d) : data(d) { }
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q.template enqueueInitial<typename TProcedure::ExpectedData>(data);
       return true;
     }
+    #endif
   };
 
   template<class TProcedure>
@@ -253,13 +277,15 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     typename TProcedure::ExpectedData& data;
     bool res;
-    __inline__ __device__ EnqueueVisitor(typename TProcedure::ExpectedData& d) : data(d) { }
+    #ifdef OPENCL_CODE
+    __inline__ /*__device__*/ EnqueueVisitor(typename TProcedure::ExpectedData& d) : data(d) { }
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q.template enqueue <typename TProcedure::ExpectedData>(data);
       return true;
     }
+    #endif
   };
 
   template< int Threads, class TProcedure>
@@ -267,13 +293,15 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     typename TProcedure::ExpectedData* data;
     bool res;
-    __inline__ __device__ EnqueueThreadsVisitor(typename TProcedure::ExpectedData* d) : data(d) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ EnqueueThreadsVisitor(typename TProcedure::ExpectedData* d) : data(d) { }
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q.template enqueue <Threads, typename TProcedure::ExpectedData>(data);
       return true;
     }
+    #endif
   };
    
   template<bool MultiProcedure>
@@ -282,15 +310,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
     void*& data;
     int maxNum;
     int res;
-
-    __inline__ __device__ DequeueSelectedVisitor(void*& data, int maxNum) : data(data), maxNum(maxNum) { }
+	#ifdef OPENCLC_ODE
+    __inline__ /*__device__*/ DequeueSelectedVisitor(void*& data, int maxNum) : data(data), maxNum(maxNum) { }
 
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q.dequeueSelected(data, TQAttachment::ProcedureId, maxNum);
       return true;
     }
+    #endif
   };
 
   template<class TProcedure>
@@ -298,15 +327,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     int maxNum;
     int res;
-
-    __inline__ __device__ ReserveReadVisitor(int maxNum) : maxNum(maxNum) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ ReserveReadVisitor(int maxNum) : maxNum(maxNum) { }
 
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q. reserveRead (maxNum);
       return true;
     }
+    #endif
   };
 
   template<class TProcedure>
@@ -316,14 +346,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
     int num;
     int res;
 
-    __inline__ __device__ StartReadVisitor(void*& data, int num) : data(data), num(num) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ StartReadVisitor(void*& data, int num) : data(data), num(num) { }
 
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       res = q . startRead  (data, getThreadOffset<TProcedure, true>(), num);
       return true;
     }
+    #endif
   };
 
   template<class TProcedure>
@@ -331,15 +363,16 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     int id;
     int num;
-
-    __inline__ __device__ FinishReadVisitor(int id, int num) : id(id), num(num) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ FinishReadVisitor(int id, int num) : id(id), num(num) { }
 
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       q . finishRead (id, num);
       return true;
     }
+    #endif
   };
 
 
@@ -347,42 +380,51 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
     int* counts;
     int i;
-
-    __inline__ __device__ NumEntriesVisitor(int* counts) : counts(counts), i(0) { }
+	#ifdef OPENCL_CODE
+    __inline__ /*__device__*/ NumEntriesVisitor(int* counts) : counts(counts), i(0) { }
 
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       counts[i] = q.size();
       ++i;
       return false;
     }
+    #endif
   };
 
 
   struct RecordVisitor
   {
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    #ifdef OPENCL_CODE
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       q.record();
       return false;
     }
+    #endif
   };
 
   struct ResetVisitor
   {
+	#ifdef OPENCL_CODE
     template<class TQAttachment>
-    __inline__ __device__ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       q.reset();
       return false;
     }
+    #endif
   };
 
 public:
 
+	#ifdef OPENCL_CODE
+  const bool supportReuseInit = true;
+	#else
   static const bool supportReuseInit = true;
+	#endif
 
   static std::string name()
   {
@@ -392,31 +434,37 @@ public:
     return std::string("DistributedPerProcedure[") + InternalPackageQueue<16, PackageQueueSize, void>::name() + "," + InternalItemQueue<16, ItemQueueSize, void>::name() + "]" ;
   }
 
-  __inline__ __device__ void init() 
+	#ifdef OPENCL_CODE
+  __inline__ /*__device__*/ void init() 
   {
     InitVisitor visitor;
     queues . template VisitAll<InitVisitor>(visitor);
   }
+	#endif
 
-
+	#ifdef OPENCL_CODE
   template<class PROCEDURE>
-  __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data) 
+  __inline__ /*__device__*/ bool enqueueInitial(typename PROCEDURE::ExpectedData data) 
   {
     EnqueueInitialVisitor<PROCEDURE> visitor(data);
     queues. template VisitSpecific<EnqueueInitialVisitor<PROCEDURE>, PROCEDURE>(visitor);
     return visitor.res;
   }
-
+	#endif
+	
+	#ifdef OPENCL_CODE
   template<class PROCEDURE>
-  __device__ bool enqueue(typename PROCEDURE::ExpectedData data) 
+  /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData data) 
   {        
     EnqueueVisitor<PROCEDURE> visitor(data);
     queues. template VisitSpecific<EnqueueVisitor<PROCEDURE>, PROCEDURE>(visitor);
     return visitor.res;
   }
-
+	#endif
+	
+	#ifdef OPENCL_CODE
   template<int threads, class PROCEDURE>
-  __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data) 
+  __inline__ /*__device__*/ bool enqueue(typename PROCEDURE::ExpectedData* data) 
   {
     EnqueueThreadsVisitor<threads, PROCEDURE> visitor(data);
     queues. template VisitSpecific<EnqueueThreadsVisitor<threads, PROCEDURE>, PROCEDURE>(visitor);
@@ -424,7 +472,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared = 100000)
+  __inline__ /*__device__*/ int dequeue(void*& data, int*& procId, int maxShared = 100000)
   {     
     if(!RandomSelect)
     {
@@ -448,7 +496,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum = -1)
+  __inline__ /*__device__*/ int dequeueSelected(void*& data, int procId, int maxNum = -1)
   {
     DequeueSelectedVisitor<MultiProcedure> visitor(data, maxNum);
     visitor.res = 0;
@@ -457,7 +505,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared = 100000)
+  __inline__ /*__device__*/ int dequeueStartRead(void*& data, int*& procId, int maxShared = 100000)
   {
     if(!RandomSelect)
     {
@@ -482,7 +530,7 @@ public:
   }
 
   template<class PROCEDURE>
-  __inline__ __device__ int reserveRead(int maxNum = -1)
+  __inline__ /*__device__*/ int reserveRead(int maxNum = -1)
   {
     if(maxNum == -1)
       maxNum = blockDim.x / (PROCEDURE::NumThreads>0 ? PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? 1 : blockDim.x));
@@ -492,36 +540,37 @@ public:
     return visitor.res;
   }
   template<class PROCEDURE>
-  __inline__ __device__ int startRead(void*& data, int num)
+  __inline__ /*__device__*/ int startRead(void*& data, int num)
   {
     StartReadVisitor<PROCEDURE> visitor(data, num);
     queues . template VisitSpecific<StartReadVisitor<PROCEDURE>,PROCEDURE >(visitor);
     return visitor.res;
   }
   template<class PROCEDURE>
-  __inline__ __device__ void finishRead(int id,  int num)
+  __inline__ /*__device__*/ void finishRead(int id,  int num)
   {
     FinishReadVisitor<PROCEDURE> visitor(id, num);
     queues . template VisitSpecific<FinishReadVisitor<PROCEDURE>,PROCEDURE >(visitor);
   }
 
-  __inline__ __device__ void numEntries(int* counts)
+  __inline__ /*__device__*/ void numEntries(int* counts)
   { 
     NumEntriesVisitor visitor(counts);
     queues . template VisitAll<NumEntriesVisitor>(visitor);
   }
 
-  __inline__ __device__ void record()
+  __inline__ /*__device__*/ void record()
   {
     RecordVisitor visitor;
     queues . template VisitAll<RecordVisitor>(visitor);
   }
 
-  __inline__ __device__ void reset()
+  __inline__ /*__device__*/ void reset()
   {
     ResetVisitor visitor;
     queues . template VisitAll<ResetVisitor>(visitor);
   }
+  #endif
 };
 
 
@@ -547,13 +596,3 @@ struct PerProcedureQueueTyping
   template<class ProcedureInfo>
   class Type : public PerProcedureVersatileQueue<ProcedureInfo, InternalQueue, QueueSize, InternalQueue, QueueSize, RandomSelect> {}; 
 };
-
-
-
-
-
-
-
-
-
-
