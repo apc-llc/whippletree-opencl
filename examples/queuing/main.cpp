@@ -68,7 +68,6 @@
 
 #include <iostream>
 #include <tools/utils.h>
-#include "test.h"
 
 cl_context context;
 cl_device_id *devices;
