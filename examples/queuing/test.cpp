@@ -132,20 +132,20 @@ void runTest(int used_cl_device)
   MyTechnique technique;
   technique.init();
   
-  technique.insertIntoQueue<InitProc>(10);
+  //technique.insertIntoQueue<InitProc>(10);
   
 	cl_event event;	
 	double time = 0;
 
 	cl_ulong time_start=0, time_end=0;
-	clErrchk(clWaitForEvents(1, &event));
-	clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
+	//clErrchk(clWaitForEvents(1, &event));
+	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
 		
 
-	technique.execute(0, cmdQueue);
+	//technique.execute(0, cmdQueue);
 
-	clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
-	time += (time_end - time_start)/1e+6;
+	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
+	//time += (time_end - time_start)/1e+6;
 	clErrchk(clReleaseCommandQueue(cmdQueue));
 
   printf("run completed in %fs\n", time);

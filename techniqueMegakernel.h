@@ -569,8 +569,11 @@ namespace Megakernel
       {
         technique.blockSize[Phase] = TProcInfo:: template OptimalThreadCount<MultiElement>::Num;
         
-        //if(TQueue::globalMaintainMinThreads > 0)
-         //technique.blockSize[Phase] = max(technique.blockSize[Phase],TQueue::globalMaintainMinThreads);
+        int temp1,temp2;
+        temp1=technique.blockSize[Phase];
+        temp2=TQueue::globalMaintainMinThreads;
+        if(TQueue::globalMaintainMinThreads > 0)
+         technique.blockSize[Phase] = std::max(temp1,temp2);
 
         uint queueSharedMem = TQueue::requiredShared;
 
@@ -591,9 +594,12 @@ namespace Megakernel
         //w ... -> shared mem for queues...
         technique.sharedMemSum[Phase] = technique.sharedMem[Phase].s[3] + queueSharedMem;
         technique.sharedMem[Phase].s[3] = queueSharedMem/4;
-        
-        //if(TQueue::globalMaintainMinThreads > 0)
-        //  technique.sharedMemSum[Phase] = max(technique.sharedMemSum[Phase], TQueue::globalMaintainSharedMemory(technique.blockSize[Phase]));
+
+        temp1=technique.sharedMemSum[Phase];
+        temp2=TQueue::globalMaintainSharedMemory(technique.blockSize[Phase]);
+
+        if(TQueue::globalMaintainMinThreads > 0)
+          technique.sharedMemSum[Phase] = std::max(temp1,temp2);
 
         //get number of blocks to start - gk110 screwes with mutices...
         int nblocks = 0;
@@ -608,7 +614,7 @@ namespace Megakernel
         technique.blocks[Phase] = nblocks;
         //std::cout << "blocks: " << blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
-          printf("ERROR: in Megakernel confguration: dummy launch failed. Check shared memory consumption?n");
+          printf("ERROR: in Megakernel confguration: dummy launch failed. Check shared memory consumption\n");
         return false;
       }
     };

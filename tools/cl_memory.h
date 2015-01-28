@@ -74,7 +74,7 @@
 //global context!!!!
 extern cl_context context;
 
-//template <typename T>
+template <typename T>
 class cuda_ptr
 {
 private:
@@ -131,9 +131,9 @@ public:
     return temp;
   }
 
-  cl_mem * operator ->() const { return ptr; }
+  cl_mem* operator ->() const { return ptr; }
 
-  cl_mem & operator *() const { return *ptr; }
+  cl_mem& operator *() const { return *ptr; }
 
   operator cl_mem*() const { return ptr; }
 
@@ -148,7 +148,7 @@ struct cuda_deleter
 {
   void operator()(cl_mem * ptr)
   {
-    clReleaseMemObject(*ptr);
+   CL_CHECKED_CALL(clReleaseMemObject(*ptr));
   }
 };
 
