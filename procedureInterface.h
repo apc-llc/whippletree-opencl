@@ -71,12 +71,19 @@ class Procedure
 {
 public:
   //const int ProcedureId = 0;
+  #ifdef OPENCL_CODE
   const int NumThreads = 0;
   const bool ItemInput = false;
   const int sharedMemory = 0;
   const bool InitialProcedure = false;
+  #else
+  static const int NumThreads = 0;
+  static const bool ItemInput = false;
+  static const int sharedMemory = 0;
+  static const bool InitialProcedure = false;
+  #endif
   typedef int ExpectedData;
-
+  
   const char* name() { return "Unnamed_"; }// + std::to_string((unsigned long long)ProcedureId); }
   #ifndef OPENCL_CODE
   static std::string algorithmname() { return std::string("UnknownAlgorithm"); }

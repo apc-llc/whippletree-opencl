@@ -52,14 +52,20 @@ template<bool MultiElement>
 class GroupOpsSelect<1, true, MultiElement> {};
 
 
-#ifdef OPENCL_CODE
+
 // features for sub warp groups
 template<int ProcThreads, bool MultiElement>
 class GroupOpsSelect<ProcThreads, true, MultiElement> 
 { 
-  const int MaxWarps =32;
-  const unsigned int Mask = ((1u << ProcThreads)-1);
+	#ifdef OPENCL_CODE
+	const int MaxWarps =32;
+    const unsigned int Mask = ((1u << ProcThreads)-1);
+	#else
+  static const int MaxWarps =32;
+  static const unsigned int Mask = ((1u << ProcThreads)-1);
+  	#endif
 public:
+	#ifdef OPENCL_CODE
   static /*__device__*/ __inline__ bool any(int arg)
   {
     unsigned int ballotres = __ballot(arg);
@@ -99,16 +105,17 @@ public:
     return __shfl(value, srcThread, ProcThreads);
     #endif
   }
-
-};
 #endif
+};
 
-#ifdef OPENCL_CODE
+
+
 // features for single workpackage execution
 template<int ProcThreads>
 class GroupOpsSelect<ProcThreads, false, false> 
 { 
 public:
+#ifdef OPENCL_CODE
   static /*__device__*/ __inline__ void sync()
   {
     Tools::syncthreads(1, ProcThreads);
@@ -125,15 +132,15 @@ public:
   {
     return Tools::syncthreads_or(predicate, 1, ProcThreads);
   }
-};
 #endif
+};
 
-#ifdef OPENCL_CODE
 // features for multiple workpackage execution
 template<int ProcThreads>
 class GroupOpsSelect<ProcThreads, false, true> 
 { 
 public:
+#ifdef OPENCL_CODE
   static /*__device__*/ __inline__ void sync()
   {
     Tools::syncthreads(1 + get_local_id(0)/ProcThreads, ProcThreads);
@@ -150,8 +157,9 @@ public:
   {
     return Tools::syncthreads_or(predicate, 1 + get_local_id(0)/ProcThreads, ProcThreads);
   }
-};
 #endif
+
+};
 
 
 
@@ -355,8 +363,6 @@ public:
 
  
 };
-
-
 #endif
 
 #ifndef OPENCL_CODE
@@ -745,25 +751,28 @@ struct ClassSelector<A,B, false>
 };
 #endif
 
-#ifdef OPENCL_CODE
 template<class TThisAttachment, class Visitor, class ThisProc, class TargetProc, class Next>
 class VisitSpecificSelector
 {
 public:
+#ifdef OPENCL_CODE
   __inline__ /*__device__*/ static bool visit(Next& next, Visitor& visitor, TThisAttachment& data)
   {
     return next . template VisitSpecific<Visitor, TargetProc>(visitor);
   }
+#endif
 };
 
 template<class TThisAttachment, class Visitor, class MatchProc, class Next>
 class VisitSpecificSelector<TThisAttachment, Visitor,MatchProc,MatchProc,Next>
 {
 public:
+#ifdef OPENCL_CODE
   __inline__ /*__device__*/ static bool visit(Next& next, Visitor& visitor, TThisAttachment& data)
   {
      return visitor . template visit< TThisAttachment >(data);
   }
+#endif
 };
 
 
@@ -779,6 +788,7 @@ class Attach
   {
     int notBefore, i;
     Visitor & v;
+#ifdef OPENCL_CODE
     __inline__ /*__device__*/ RandVisitorBeg(Visitor & v, int randOffset) : notBefore(randOffset), i(0), v(v) { }
     template<class T>
     __inline__ /*__device__*/ bool visit(T& data)
@@ -790,6 +800,7 @@ class Attach
       }
       return v . template visit<T>(data);
     }
+#endif
   };
 
 
@@ -799,6 +810,7 @@ class Attach
     int notBefore, i;
     Visitor & v;
     bool runOver; 
+#ifdef OPENCL_CODE
 	__inline__ /*__device__*/ RandVisitorEnd(Visitor & v, int randOffset) : notBefore(randOffset), i(0), v(v), runOver(false) { }
     template<class T>
     __inline__ /*__device__*/ bool visit(T& data)
@@ -812,8 +824,10 @@ class Attach
       return true;
      
     }
+#endif
   };
 public:
+#ifdef OPENCL_CODE
 	template<class Visitor>
    __inline__ /*__device__*/ bool VisitAll(Visitor& visitor)
   {
@@ -847,6 +861,7 @@ public:
       return visitor . template visit< TThisAttachment >(data);
     return next . template VisitSpecific<Visitor>(visitor, ProcId);
   }
+#endif
 };
 
 
@@ -854,6 +869,7 @@ template<template<class /*Procedure*/> class TAttachment>
 class Attach<TAttachment, ProcInfoEnd>
 {
 public:
+#ifdef OPENCL_CODE
   template<class Visitor>
    __inline__ /*__device__*/ bool VisitAll(Visitor& visitor)
   {
@@ -869,8 +885,8 @@ public:
   {
     return false;
   }
-};
 #endif
+};
 
 
 template<class TProcInfo, class TCustom = void>
@@ -885,6 +901,7 @@ public:
     return ProcInfoVisitor<typename TProcInfo::Next, TCustom> :: template HostVisit<Visitor>(visitor);
   }
 
+#ifdef OPENCL_CODE
   template<class Visitor>
   static __inline__ /*__device__*/ bool Visit(Visitor& visitor)
   {
@@ -892,6 +909,7 @@ public:
       return true;
     return ProcInfoVisitor<typename TProcInfo::Next, TCustom > :: template Visit<Visitor>(visitor);
   }
+#endif
 };
 
 
@@ -906,9 +924,11 @@ public:
     return false;
   }
 
+#ifdef OPENCL_CODE
   template<class Visitor>
   static __inline__ /*__device__*/  bool Visit(Visitor& visitor)
   {
     return false;
   }
+#endif
 };
