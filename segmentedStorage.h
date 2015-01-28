@@ -409,7 +409,7 @@ namespace SegmentedStorage
   {
   protected:
     typedef typename StorageElementTyping<TElementSize>::Type QueueData_T;
-
+	
     static const int ElementsPerBlock = (SharedStorage::BlockSize - sizeof(uint)) / (TElementSize);
     typedef SegmentedQueueStorageBase<TQueueSize, ElementsPerBlock, SharedStorage> Base;
     typedef typename Base::MyBlock MyBlock;

@@ -396,8 +396,8 @@ class PerProcedureVersatileQueue : public ::Queue<>
 
   struct RecordVisitor
   {
-    template<class TQAttachment>
     #ifdef OPENCL_CODE
+    template<class TQAttachment>
     __inline__ /*__device__*/ bool visit(TQAttachment& q)
     {
       q.record();

@@ -77,7 +77,7 @@ extern cl_device_id *devices;
 #include "techniqueMegakernel.h"
 //#include "techniqueKernels.cuh"
 //#include "techniqueDynamicParallelism.cuh"
-//#include "segmentedStorage.cuh"
+#include "segmentedStorage.h"
 
 #include "proc0.h"
 #include "proc1.h"
