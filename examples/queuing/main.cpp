@@ -63,10 +63,12 @@
 //
 
 //#include <cuda_runtime_api.h>
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
 
 #include <iostream>
 #include <tools/utils.h>
+#include "test.h"
 
 cl_context context;
 cl_device_id *devices;
