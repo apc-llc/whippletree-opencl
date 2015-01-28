@@ -472,8 +472,8 @@ public:
   static void updateRequiredShared(int numThreads, cl_uint4 & sharedMem, bool copyToShared, int maxShared, bool MultiExecIdentifieres)
   {
     int num  = numThreads;
-    cl_uint4 mysharedAbs = cl_uint4(0,0,0,0);
-    cl_uint4 mysharedMul = cl_uint4(0,0,0,0);
+    cl_uint4 mysharedAbs = (cl_uint4){0,0,0,0};
+    cl_uint4 mysharedMul = (cl_uint4){0,0,0,0};
     if(Procedure::ItemInput)
     { 
       num = numThreads;

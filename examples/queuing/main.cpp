@@ -71,14 +71,14 @@
 cl_context context;
 cl_device_id *devices;
     
+void runTest(int used_cl_device);
 
-void runTest(int device);
 int main(int argc, char** argv)
 {
   try
   {
 	cl_int status;
-	int cl_device = argc > 1 ? atoi(argv[1]) : 0;
+	int used_cl_device = argc > 1 ? atoi(argv[1]) : 0;
 
     //Initializing platform
     cl_uint numPlatforms = 0;
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
        std::cout << "No CL devices available" << std::endl;
        return -1;
     }
-	if (numDevices<=cl_device)
+	if (numDevices<=used_cl_device)
     {
        std::cout << "No such CL device ID" << std::endl;
        return -1;
@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 
 
 
-	runTest(cl_device);
+	runTest(used_cl_device);
 
 
 #ifdef WIN32

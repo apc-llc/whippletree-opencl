@@ -84,7 +84,6 @@ extern cl_device_id *devices;
 #include "proc2.h"
 
 
-
 //somehow we need to get something into the queue
 //the init proc does that for us
 class InitProc
@@ -122,11 +121,11 @@ typedef Megakernel::DynamicPointed16336<MyQueue, TestProcInfo> MyTechnique;
 
 //typedef DynamicParallelism::TechniqueQueuedNoCopy<MyQueue, InitProc, TestProcInfo> MyTechnique;
 
-void runTest(int cl_device)
+void runTest(int used_cl_device)
 {
 	cl_int status;	
 	cl_command_queue cmdQueue;
-    cmdQueue = clCreateCommandQueue(context, devices[cl_device], 0, &status);
+    cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
 	clErrchk(status);
 
   //create everything

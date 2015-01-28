@@ -569,8 +569,8 @@ namespace Megakernel
       {
         technique.blockSize[Phase] = TProcInfo:: template OptimalThreadCount<MultiElement>::Num;
         
-        if(TQueue::globalMaintainMinThreads > 0)
-         technique.blockSize[Phase] = max(technique.blockSize[Phase],TQueue::globalMaintainMinThreads);
+        //if(TQueue::globalMaintainMinThreads > 0)
+         //technique.blockSize[Phase] = max(technique.blockSize[Phase],TQueue::globalMaintainMinThreads);
 
         uint queueSharedMem = TQueue::requiredShared;
 
@@ -592,8 +592,8 @@ namespace Megakernel
         technique.sharedMemSum[Phase] = technique.sharedMem[Phase].s[3] + queueSharedMem;
         technique.sharedMem[Phase].s[3] = queueSharedMem/4;
         
-        if(TQueue::globalMaintainMinThreads > 0)
-          technique.sharedMemSum[Phase] = max(technique.sharedMemSum[Phase], TQueue::globalMaintainSharedMemory(technique.blockSize[Phase]));
+        //if(TQueue::globalMaintainMinThreads > 0)
+        //  technique.sharedMemSum[Phase] = max(technique.sharedMemSum[Phase], TQueue::globalMaintainSharedMemory(technique.blockSize[Phase]));
 
         //get number of blocks to start - gk110 screwes with mutices...
         int nblocks = 0;
