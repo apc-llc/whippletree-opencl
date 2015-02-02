@@ -47,6 +47,7 @@
 
 #include "procinfoTemplate.h"
 #include "queuingMultiPhase.h"
+#include "techniqueMegakernelVars.h"
 
 //#include "techniqueMegakernel.h"//reordered123 from cu to h and this from cuh to cpp
 
@@ -461,6 +462,7 @@ namespace Megakernel
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
   __kernel void megakernel(Q * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
   {
+  /*
     if(q == 0)
     {
       if(globalvars.maxConcurrentBlockEvalDone != 0)
@@ -567,10 +569,13 @@ namespace Megakernel
       q->workerMaintain();
     }
     q->workerEnd();
+    */
   }
 
-//template __attribute__((mangled_name(megakernel_int))) 
-//__kernel void megakernel(int Q, int PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
+template __attribute__((mangled_name(mkt))) 
+__kernel void megakernel <MyQueue Q, TestProcInfo PROCINFO, void CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria> (MyQueue * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars);
+
+//__kernel void megakernel(MyQueue Q, TestProcInfo PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
 //__kernel void megakernel(int * q, cl_uint4 sharedMemDist, int t, int* shutdown);
 #endif
 

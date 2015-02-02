@@ -6,9 +6,9 @@
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
 
-char *code;
+char *mycode;
 size_t source_size;
-#define MAX_SOURCE_SIZE (0x10000000)
+#define MAX_SOURCE_SIZE (0x1000000)
 
 //Error checking Macro
 #include <assert.h>
@@ -18,7 +18,7 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 	if (code != CL_SUCCESS) 
 	{
 		fprintf(stderr,"GPUassert: %i %s %d\n", code, file, line);
-		if (abort) exit(code);
+		//if (abort) exit(code);
 	}
 }
 
@@ -26,14 +26,15 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 bool readKernelFromFile()
 {
 	FILE *fp;
-	fp= fopen("techniqueMegakernel.h","r");
+	fp= fopen("examples/queuing/test.cpp","r");
 	if (!fp)
 	{
 		printf("Failed to load kernel/ \n");
 		return(false);
 	}
-	code=(char*)malloc(MAX_SOURCE_SIZE);
-	source_size=fread(code,1,MAX_SOURCE_SIZE,fp);
+	mycode=(char*)malloc(MAX_SOURCE_SIZE);
+	source_size=fread(mycode,1,MAX_SOURCE_SIZE,fp);
+	std::cout<<source_size<<"\n";
 	fclose(fp);
 	return(true);
 }
@@ -70,16 +71,17 @@ int main() {
 	//Reading and compiling program
     if(!readKernelFromFile())
 		exit(1);
-    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&code, NULL, &status);
+    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&mycode, &source_size, &status);
 	clErrchk(status);
 
 	
 	char options[2*1024];
-	sprintf(options, "-x clc++ -I /home/alex/whippletree-opencl/ cppcode.o -DOPENCL_CODE");
-    clBuildProgram(program, numDevices, devices, options, NULL, NULL);
+	sprintf(options, "-x clc++ -I /home/alex/whippletree-opencl/ -DOPENCL_CODE");
+    clErrchk(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
+    
 	cl_kernel kernel = NULL;
-	kernel = clCreateKernel(program, "megakernel", &status);
-	//clErrchk(status);
+	kernel = clCreateKernel(program, "mkt", &status);
+	clErrchk(status);
 	char *build_log;
 	size_t ret_val_size;
 	clErrchk(clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size));
