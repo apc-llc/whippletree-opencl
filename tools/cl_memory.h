@@ -68,12 +68,13 @@
 #ifndef INCLUDED_CL_PTR
 #define INCLUDED_CL_PTR
 
-#pragma once
+
 #include <CL/cl.h>
 
 //global context!!!!
 extern cl_context context;
 
+#pragma once
 template <typename T>
 class cuda_ptr
 {
@@ -141,14 +142,14 @@ public:
 
 
 #include <memory>
-//#include <cuda_runtime_api.h>
 #include "utils.h"
 
 struct cuda_deleter
 {
   void operator()(cl_mem * ptr)
   {
-   CL_CHECKED_CALL(clReleaseMemObject(*ptr));
+   cl_mem * temp = (cl_mem*)&ptr;
+   //CL_CHECKED_CALL(clReleaseMemObject(*temp));
   }
 };
 
@@ -161,7 +162,7 @@ inline std::unique_ptr<cl_mem, cuda_deleter> cudaAlloc()
   *ptr = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(T), NULL, &status);
   CL_CHECKED_CALL(status);
 
-  return std::unique_ptr<cl_mem, cuda_deleter>(static_cast<cl_mem*>(ptr));
+    return std::unique_ptr<cl_mem, cuda_deleter>(static_cast<cl_mem*>(ptr));
 }
 
 template <typename T>

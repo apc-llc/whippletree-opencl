@@ -131,8 +131,10 @@ void runTest(int used_cl_device)
   //create everything
   MyTechnique technique;
   technique.init();
+  std::cout<<"init completed\n";
   
-  //technique.insertIntoQueue<InitProc>(10);
+  technique.insertIntoQueue<InitProc>(10);
+  std::cout<<"insert completed\n";
   
 	cl_event event;	
 	double time = 0;
@@ -142,7 +144,9 @@ void runTest(int used_cl_device)
 	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
 		
 
-	//technique.execute(0, cmdQueue);
+	technique.execute(0, cmdQueue);
+	std::cout<<"execution completed\n";
+	
 
 	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
 	//time += (time_end - time_start)/1e+6;

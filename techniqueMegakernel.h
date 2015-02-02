@@ -92,7 +92,7 @@ namespace Megakernel
   {
     q->reset();
   }
-
+#endif
 
   template<class Q, class ProcInfo, class PROC, class CUSTOM, bool Itemized,  bool MultiElement>
   class FuncCaller;
@@ -102,6 +102,7 @@ namespace Megakernel
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, false, false>
   {
   public:
+     #ifdef OPENCL_CODE
      __inline__
     static void call(Q* queue, void* data, int hasData, uint* shared)
     {
@@ -113,12 +114,14 @@ namespace Megakernel
       if(PROC::NumThreads == 0 || get_local_id(0) < nThreads)
         PROC :: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(get_local_id(0), nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
+    #endif
   };
 
   template<class Q, class ProcInfo, class PROC, class CUSTOM>
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, false, true>
   {
   public:
+	#ifdef OPENCL_CODE
      __inline__
     static void call(Q* queue, void* data, int hasData, uint* shared)
     {
@@ -138,18 +141,21 @@ namespace Megakernel
       }
       
     }
+    #endif
   };
 
   template<class Q, class ProcInfo, class PROC, class CUSTOM, bool MultiElement>
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, true, MultiElement>
   {
   public:
+  	#ifdef OPENCL_CODE
      __inline__
     static void call(Q* queue, void* data, int numData, uint* shared)
     {
       if(get_local_id(0) < numData)
         PROC :: template execute<Q, Context<PROC::NumThreads, MultiElement, CUSTOM> >(get_local_id(0), numData, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
+    #endif
   };
 
   
@@ -159,12 +165,18 @@ namespace Megakernel
   struct ProcCallCopyVisitor
   {
     int* execproc;
+    #ifdef OPENCL_CODE
+    const uint4 & sharedMem;
+	#else
     const cl_uint4 & sharedMem;
+	#endif
+	
     Q* q;
     void* execData;
     uint* s_data;
 	 int hasResult;
-    __inline__  ProcCallCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const cl_uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data) { }
+	#ifdef OPENCL_CODE
+    __inline__  ProcCallCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data) { }
     template<class TProcedure, class CUSTOM>
      __inline__ bool visit()
     {
@@ -175,18 +187,24 @@ namespace Megakernel
       }
       return false;
     }
+    #endif
   };
 
   template<class Q, class ProcInfo, bool MultiElement>
   struct ProcCallNoCopyVisitor
   {
     int* execproc;
+	#ifdef OPENCL_CODE
+    const uint4 & sharedMem;
+    #else
     const cl_uint4 & sharedMem;
+    #endif
     Q* q;
     void* execData;
     uint* s_data;
     int hasResult;
-    __inline__  ProcCallNoCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const cl_uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }
+	#ifdef OPENCL_CODE
+    __inline__  ProcCallNoCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }
     template<class TProcedure, class CUSTOM>
      __inline__ bool visit()
     {
@@ -199,19 +217,21 @@ namespace Megakernel
       }
       return false;
     }
+    #endif
   };
 
+	#ifdef OPENCL_CODE
   #define PROCCALLNOCOPYPART(LAUNCHNUM) \
   template<class Q, class ProcInfo, bool MultiElement> \
   struct ProcCallNoCopyVisitorPart ## LAUNCHNUM \
   { \
     int* execproc; \
-    const cl_uint4 & sharedMem; \
+    const uint4 & sharedMem; \
     Q* q; \
     void* execData; \
     uint* s_data; \
     int hasResult; \
-    __inline__  ProcCallNoCopyVisitorPart ## LAUNCHNUM  (Q* q, int *execproc, void * execData, uint* s_data, const cl_uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }  \
+    __inline__  ProcCallNoCopyVisitorPart ## LAUNCHNUM  (Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }  \
     template<class TProcedure, class CUSTOM>  \
      __inline__ bool visit()  \
     {  \
@@ -231,7 +251,7 @@ namespace Megakernel
   PROCCALLNOCOPYPART(3)
 
 #undef PROCCALLNOCOPYPART
-
+#endif
 	//commented out because no nonconstant global scope variables available in OpenCL
 	//  extern  int maxConcurrentBlocks;
 	//  extern  volatile int maxConcurrentBlockEvalDone;
@@ -244,6 +264,7 @@ namespace Megakernel
   class MaintainerCaller<Q, StopCriteria, true>
   {
   public:
+    #ifdef OPENCL_CODE
     static __inline__  bool RunMaintainer(Q* q, int* shutdown)
     {
       
@@ -277,15 +298,18 @@ namespace Megakernel
       }
       return false;
     }
+    #endif
   };
   template<class Q, MegakernelStopCriteria StopCriteria>
   class MaintainerCaller<Q, StopCriteria, false>
   {
   public:
+	#ifdef OPENCL_CODE
     static __inline__  bool RunMaintainer(Q* q, int* shutdown)
     {
       return false;
     }
+    #endif
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool tripleCall>
@@ -295,7 +319,8 @@ namespace Megakernel
   class MegakernelLogics<Q, PROCINFO, CUSTOM, true, MultiElement, tripleCall>
   {
   public:
-    static   __inline__ int  run(Q* q, cl_uint4 sharedMemDist)
+	#ifdef OPENCL_CODE
+    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -312,13 +337,15 @@ namespace Megakernel
       }
       return hasResult;
     }
+    #endif
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool MultiElement>
   class MegakernelLogics<Q, PROCINFO, CUSTOM, false, MultiElement, false>
   {
   public:
-    static   __inline__ int  run(Q* q, cl_uint4 sharedMemDist)
+  #ifdef OPENCL_CODE
+    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -335,13 +362,15 @@ namespace Megakernel
       }
       return hasResult;
     }
+    #endif
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool MultiElement>
   class MegakernelLogics<Q, PROCINFO, CUSTOM, false, MultiElement, true>
   {
   public:
-    static   __inline__ int  run(Q* q, cl_uint4 sharedMemDist)
+	#ifdef OPENCL_CODE
+    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -375,6 +404,7 @@ namespace Megakernel
 
       return hasResult;
     }
+    #endif
   };
 
   template<ulong StaticLimit, bool Dynamic>
@@ -396,6 +426,7 @@ namespace Megakernel
   struct TimeLimiter<StaticLimit, false>
   {
     ulong  TimeLimiter_start;
+    #ifdef OPENCL_CODE
     __inline__ TimeLimiter() 
 	    {
       if(get_local_id(0) == 0)
@@ -405,12 +436,14 @@ namespace Megakernel
     {
       return 0;//(clock64() - TimeLimiter_start) > StaticLimit;
     }
+    #endif
   };
 
   template<>
   struct TimeLimiter<0, true>
   {
     ulong TimeLimiter_start;
+	#ifdef OPENCL_CODE
    __inline__ TimeLimiter() 
     {
       if(get_local_id(0) == 0)
@@ -420,11 +453,13 @@ namespace Megakernel
     {
       return 0;//(clock64() - TimeLimiter_start)/1024 > tval;
     }
+    #endif
   };
 
 
+#ifdef OPENCL_CODE
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
-  __kernel void megakernel(Q * q, cl_uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
+  __kernel void megakernel(Q * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
   {
     if(q == 0)
     {
@@ -537,8 +572,9 @@ namespace Megakernel
 //template __attribute__((mangled_name(megakernel_int))) 
 //__kernel void megakernel(int Q, int PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
 //__kernel void megakernel(int * q, cl_uint4 sharedMemDist, int t, int* shutdown);
-#else
+#endif
 
+#ifndef OPENCL_CODE
 /*--------------------------------------------------------------------------------------------------------------------------------------*/
 
   template<template <class> class QUEUE, class PROCINFO, class ApplicationContext = void, int maxShared = 16336, bool LoadToShared = true, bool MultiElement = true, bool StaticTimelimit  = false, bool DynamicTimelimit = false>

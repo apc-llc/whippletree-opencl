@@ -26,7 +26,7 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 bool readKernelFromFile()
 {
 	FILE *fp;
-	fp= fopen("code.cpp","r");
+	fp= fopen("techniqueMegakernel.h","r");
 	if (!fp)
 	{
 		printf("Failed to load kernel/ \n");
@@ -75,7 +75,7 @@ int main() {
 
 	
 	char options[2*1024];
-	sprintf(options, "-x clc++ -I /home/alex/opencl_compiler/ -DOPENCL_CODE");
+	sprintf(options, "-x clc++ -I /home/alex/whippletree-opencl/ cppcode.o -DOPENCL_CODE");
     clBuildProgram(program, numDevices, devices, options, NULL, NULL);
 	cl_kernel kernel = NULL;
 	kernel = clCreateKernel(program, "megakernel", &status);
