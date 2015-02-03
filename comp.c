@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include "comp.h"
 // OpenCL includes
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
@@ -26,7 +27,7 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 bool readKernelFromFile()
 {
 	FILE *fp;
-	fp= fopen("examples/queuing/test.cpp","r");
+	fp= fopen("test.cpp","r");
 	if (!fp)
 	{
 		printf("Failed to load kernel/ \n");
@@ -39,7 +40,7 @@ bool readKernelFromFile()
 	return(true);
 }
 
-int main() {
+void compile_device_code() {
     // This code executes on the OpenCL host
     cl_int status;  
       
@@ -77,11 +78,11 @@ int main() {
 	
 	char options[2*1024];
 	sprintf(options, "-x clc++ -I /home/alex/whippletree-opencl/ -DOPENCL_CODE");
-    clErrchk(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
+    /*clErrchk*/(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     
 	cl_kernel kernel = NULL;
 	kernel = clCreateKernel(program, "mkt", &status);
-	clErrchk(status);
+	/*clErrchk(status)*/;
 	char *build_log;
 	size_t ret_val_size;
 	clErrchk(clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size));

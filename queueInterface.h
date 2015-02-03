@@ -31,7 +31,9 @@
 //
 
 #pragma once
+#ifndef OPENCL_CODE
 #include <string>
+#endif
 
 template<bool TWarnings = true>
 class Queue
@@ -150,6 +152,7 @@ public:
   { }
 	#endif
 
+  #ifndef OPENCL_CODE
   static std::string name()
   {
     if(TWarnings) 
@@ -157,6 +160,7 @@ public:
     else
       return "";
   }
+  #endif
 };
 
 template<class ProcedureInfo, template<class /*PI*/> class RealQueue, template<class> class MatchMaker>
@@ -254,10 +258,12 @@ public:
     return false;
   }
 
+	#ifndef OPENCL_CODE
   static std::string name()
   {
     return "UnnamedBasicQueue";
   }
+  #endif
 };
 
 template<>
@@ -325,10 +331,12 @@ public:
     return false;
   }
 
+  #ifndef OPENCL_CODE
   static std::string name()
   {
     return "UnnamedBasicQueue";
   }
+  #endif
 };
 
 
@@ -349,10 +357,14 @@ template<unsigned int Size>
 class Min16
 {
 public:
+#ifndef OPENCL_CODE
   static const unsigned int Compute = Size;
+#else
+  const unsigned int Compute = Size;
+  #endif
 };
 
-
+#ifndef OPENCL_CODE
 #define _Min16Macro(Size) \
 template<> \
 class Min16<Size> \
@@ -377,5 +389,32 @@ _Min16Macro(12U)
 _Min16Macro(13U)
 _Min16Macro(14U)
 _Min16Macro(15U)
-
 #undef _Min16Macro
+#else
+
+#define _Min16Macro(Size) \
+template<> \
+class Min16<Size> \
+{ \
+public:  \
+  const unsigned int Compute = 16U;  \
+};
+
+_Min16Macro(0U)
+_Min16Macro(1U)
+_Min16Macro(2U)
+_Min16Macro(3U)
+_Min16Macro(4U)
+_Min16Macro(5U)
+_Min16Macro(6U)
+_Min16Macro(7U)
+_Min16Macro(8U)
+_Min16Macro(9U)
+_Min16Macro(10U)
+_Min16Macro(11U)
+_Min16Macro(12U)
+_Min16Macro(13U)
+_Min16Macro(14U)
+_Min16Macro(15U)
+#undef _Min16Macro
+#endif

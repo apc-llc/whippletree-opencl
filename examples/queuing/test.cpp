@@ -62,12 +62,15 @@
 //  THE SOFTWARE.
 //
 
+#ifndef OPENCL_CODE
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
 #include <tools/utils.h>
+#include "comp.h"
 
 extern cl_context context;
 extern cl_device_id *devices;
+#endif
 
 //ALL CUDA HEADERS TO BE REWRITTEN
 
@@ -121,6 +124,7 @@ typedef Megakernel::DynamicPointed16336<MyQueue, TestProcInfo> MyTechnique;
 
 //typedef DynamicParallelism::TechniqueQueuedNoCopy<MyQueue, InitProc, TestProcInfo> MyTechnique;
 
+#ifndef OPENCL_CODE
 void runTest(int used_cl_device)
 {
 	cl_int status;	
@@ -130,6 +134,9 @@ void runTest(int used_cl_device)
 
   //create everything
   MyTechnique technique;
+  
+  compile_device_code();
+  
   technique.init();
   std::cout<<"init completed\n";
   
@@ -154,3 +161,4 @@ void runTest(int used_cl_device)
 
   printf("run completed in %fs\n", time);
 }
+#endif
