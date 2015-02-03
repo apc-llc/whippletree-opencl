@@ -39,8 +39,10 @@
 namespace SegmentedStorage
 {
 
+  #ifndef OPENCL_CODE
   extern void (*pReinitStorage)();
   extern /*__device__*/ void* storage;
+  #endif
   template<int TStorageSize, int TBlockSize>
   class Storage
   {
@@ -126,9 +128,9 @@ namespace SegmentedStorage
     }
 	#endif
   };
-
+	#ifndef OPENCL_CODE
   extern void* StoragePointer;
-
+	#endif
 	#ifdef OPENCLC_CODE
   template<int StorageSize, int BlockSize>
   __kernel void initStorage(void* data)
@@ -303,11 +305,12 @@ namespace SegmentedStorage
   public:
 
    
-
+	#ifndef OPENCL_CODE
     static std::string name()
     {
       return "SharedStorage";
     }
+	#endif
 
   	#ifdef OPENCL_CODE
     __inline__ /*__device__*/ void init()
@@ -410,7 +413,11 @@ namespace SegmentedStorage
   protected:
     typedef typename StorageElementTyping<TElementSize>::Type QueueData_T;
 	
+	#ifndef OPENCL_CODE
     static const int ElementsPerBlock = (SharedStorage::BlockSize - sizeof(uint)) / (TElementSize);
+    #else
+    const int ElementsPerBlock = (SharedStorage::BlockSize - sizeof(uint)) / (TElementSize);
+    #endif
     typedef SegmentedQueueStorageBase<TQueueSize, ElementsPerBlock, SharedStorage> Base;
     typedef typename Base::MyBlock MyBlock;
 

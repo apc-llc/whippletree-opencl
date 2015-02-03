@@ -167,14 +167,6 @@ __inline__ /*__device__*/ uint& load(uint& dest, const volatile uint& src)
 }
 #endif
 
-#ifdef OPENCL_CODE
-__inline__ /*__device__*/ uint& load(uint& dest, const volatile uint& src)
-{
-	dest = src;
-	return dest;
-}
-#endif
-
 
 #ifdef OPENCL_CODE
 __inline__ /*__device__*/ uchar3& load(uchar3& dest, const volatile uchar3& src)
@@ -230,13 +222,6 @@ __inline__ /*__device__*/ volatile uint& store(volatile uint& dest, const uint& 
 }
 #endif
 
-#ifdef OPENCL_CODE
-__inline__ /*__device__*/ volatile uint& store(volatile uint& dest, const uint& src)
-{
-	dest = src;
-	return dest;
-}
-#endif
 
 #ifdef OPENCL_CODE
 __inline__ /*__device__*/ volatile uchar3& store(volatile uchar3& dest, const uchar3& src)
@@ -523,7 +508,7 @@ struct vectorCopy
 
 	/*__device__*/ __inline__ static void storeThreaded(volatile void* dest, const void* src, int i);
 	/*__device__*/ __inline__ static void loadThreaded(void* dest, const volatile void* src, int i);
-	#endif
+	#else
 	
 	static const unsigned int byte_width = bytes >= 16 ? 16 : bytes >= 8 ? 8 : bytes >= 4 ? 4 : 1;
 	static const unsigned int iterations = bytes / byte_width;
@@ -532,7 +517,7 @@ struct vectorCopy
 	static const unsigned int vectors_copied = max_threads * iterations_threaded;
 
 	typedef typename selectVectorCopyType<byte_width>::type vector_type;
-
+	#endif
 };
 
 
@@ -812,7 +797,11 @@ public:
 template<uint TElementSize, uint TQueueSize, class TAdditionalData, class QueueStub, class TQueueStorage >
 class QueueBuilder : public ::BasicQueue<TAdditionalData>, protected TQueueStorage, public QueueStub
 {
+	#ifndef OPENCL_CODE
   static const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+	#else
+  const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+  #endif
 
 public:
 #ifdef OPENCL_CODE
@@ -895,7 +884,11 @@ template<uint TElementSize, uint TQueueSize, class QueueStub, class TQueueStorag
 class QueueBuilder<TElementSize, TQueueSize, void, QueueStub, TQueueStorage>
   : public ::BasicQueue<void>, protected TQueueStorage, public QueueStub
 {
+	#ifndef OPENCL_CODE
   static const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+  	#else
+  const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
+  	#endif
 public:
 
   __inline__ /*__device__*/ void init()
@@ -904,10 +897,12 @@ public:
     TQueueStorage::init();
   }
 
+  #ifndef OPENCL_CODE
   static std::string name()
   {
     return QueueStub::name() + TQueueStorage::name();
   }
+  #endif
 
 #ifdef OPENCL_CODE
   template<class Data>
@@ -977,7 +972,7 @@ public:
 template<uint MemSize>
 class MemoryAllocFastest
 {
-  static const uint AllocElements = MemSize/sizeof(uint);
+  const uint AllocElements = MemSize/sizeof(uint);
   uint allocPointer;
 public:
   uint4 volatile dataAllocation[AllocElements/4];
@@ -1021,8 +1016,8 @@ public:
 template<uint MemSize>
 class MemoryAlloc
 {
-  static const uint AllocSize = 16;
-  static const uint AllocElements = MemSize/AllocSize;
+  const uint AllocSize = 16;
+  const uint AllocElements = MemSize/AllocSize;
   
   uint flags[(AllocElements + 31)/32];
   uint allocPointer;
@@ -1093,10 +1088,10 @@ class AllocStorage : private MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElement
 {
 
 protected:
-  static const  int ForceSize = TAvgElementSize > 8 ? 16 :
+  const  int ForceSize = TAvgElementSize > 8 ? 16 :
                                 TAvgElementSize > 4 ? 8 : 4;
-  static const  int PureAdditionalSize = (sizeof(TAdditionalData)+sizeof(uint)-1)/sizeof(uint);
-  static const  int AdditionalSize = TAvgElementSize > 8 || sizeof(TAdditionalData) > 8 ? (sizeof(TAdditionalData)+15)/16*16 :
+  const  int PureAdditionalSize = (sizeof(TAdditionalData)+sizeof(uint)-1)/sizeof(uint);
+  const  int AdditionalSize = TAvgElementSize > 8 || sizeof(TAdditionalData) > 8 ? (sizeof(TAdditionalData)+15)/16*16 :
                                      TAvgElementSize > 4 || sizeof(TAdditionalData) > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4;
 
   typedef typename StorageElementTyping<sizeof(TAdditionalData)>::Type AdditonalInfoElement;
@@ -1106,11 +1101,13 @@ protected:
   OffsetData_T volatile offsetStorage[TQueueSize];
 
 public:
-
+	#ifndef OPENCL_CODE
   static std::string name()
   {
     return std::string("Alloced");// + std::to_string((unsigned long long)AdditionalSize) + " " + std::to_string((unsigned long long)TAvgElementSize);
   }
+  #endif
+  
   #ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {
@@ -1223,7 +1220,7 @@ template<uint TAvgElementSize, uint TQueueSize, bool TCheckSet, template<uint > 
 class AllocStorage<TAvgElementSize, void, TQueueSize, TCheckSet, MemAlloc> : private MemAlloc<TAvgElementSize*TQueueSize>
 {
 protected:
-  static const  int ForceSize = TAvgElementSize > 8 ? 16 :
+  const  int ForceSize = TAvgElementSize > 8 ? 16 :
                                 TAvgElementSize > 4 ? 8 : 4;
   
   typedef typename StorageElementTyping<sizeof(uint2)>::Type OffsetData_T;
@@ -1233,10 +1230,12 @@ protected:
 
 public:
 
+  #ifndef OPENCL_CODE
   static std::string name()
   {
     return "Alloced";
   }
+  #endif
   #ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init()
   {

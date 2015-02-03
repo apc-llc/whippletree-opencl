@@ -36,7 +36,10 @@
 #include "procinfoTemplate.h"
 #include "queueHelpers.h"
 #include "random.h"
+
+#ifndef OPENCL_CODE
 #include <string>
+#endif
 
 template<class PROCEDURE, int ProcId, int NumElements, bool TWarpOptimization>
 struct SharedBaseQueue
