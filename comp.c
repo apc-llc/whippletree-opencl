@@ -77,7 +77,7 @@ void compile_device_code() {
 
 	
 	char options[2*1024];
-	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
+	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/queuing -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
     /*clErrchk*/(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     
 	cl_kernel kernel = NULL;

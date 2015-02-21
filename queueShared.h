@@ -44,7 +44,11 @@
 template<class PROCEDURE, int ProcId, int NumElements, bool TWarpOptimization>
 struct SharedBaseQueue
 {
+ 	#ifndef OPENCL_CODE
   static const int HeaderSize = 4*sizeof(uint);
+  #else
+  const int HeaderSize = 4*sizeof(uint);
+  #endif
 
   uint procId_maxnum;
   volatile int counter;
@@ -202,17 +206,23 @@ struct SharedBaseQueue
     __syncthreads();
   }
 	#endif
+  #ifndef OPENCL_CODE
   static std::string name() 
   {
     return std::string("SharedBaseQueue") + (TWarpOptimization?"Warpoptimized":"");
   }
+  #endif
   
 };
 
 template<int Size>
 struct Make16
 {
+  #ifndef OPENCL_CODE
   static const int Res = (Size+15)/16*16;
+  #else
+  const int Res = (Size+15)/16*16;
+  #endif
 };
 
 class EndSharedQueue 
@@ -495,9 +505,15 @@ class SharedQueueElement
 	#endif
 
 public: 
+  #ifdef OPENCL_CODE
+  const int requiredShared = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: SumSize;
+  #else
   static const int requiredShared = TSQDescription :: template Overall<RootOverallNode, MaxSize, PrevSize> :: SumSize;
+  #endif
   
+  #ifndef OPENCL_CODE
   static_assert(requiredShared <= MaxSize, "Shared Queue generated from traits is larger than specified max QueueSize");
+  #endif
 	#ifdef OPENCL_CODE
   __inline__ /*__device__*/ static void init(char* sQueueStartPointer)
   {
@@ -598,10 +614,12 @@ public:
     SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: finishRead(sQueueStartPointer, myQ(sQueueStartPointer), id, num);
   }
 	#endif
+  #ifndef OPENCL_CODE
   static std::string name()
   { 
     return std::to_string((long long)findProcId<ProcInfo,MyProc>::value) + "(" + std::to_string((long long)NumElements) + ")" + "," + NextSharedQueueElement :: name();
   }
+  #endif
 };
 
 
@@ -629,7 +647,9 @@ public:
 	#else
 	static const int requiredShared = 0;
 	#endif
+	#ifndef OPENCL_CODE
   static std::string name() { return ""; }
+  #endif
 };
 
 
@@ -872,12 +892,14 @@ public:
     ExtQ :: globalMaintain();
   }
 	#endif
+	#ifndef OPENCL_CODE
   static std::string name()
   {
     if(GotoGlobalChance > 0)
       return std::string("SharedCombinedQueue_GolbalProp") + std::to_string((unsigned long long)GotoGlobalChance) + "_" + SharedQ::name() + "/" + ExtQ::name() ;
     return std::string("SharedCombinedQueue_") + SharedQ::name() + "/" + ExtQ::name() ;
   }
+  #endif
 
 };
 

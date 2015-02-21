@@ -215,6 +215,49 @@ struct Equals<A,A>
 {
   static const bool result = true;
 };
+#else
+template <int a, int b> 
+struct maxOperator 
+{ 
+  const int result = a > b ? a : b; 
+};
+
+template <int a, int b> 
+struct minOperator 
+{ 
+  const int result = a < b ? a : b; 
+};
+
+template <bool test, int a, int b>
+struct switchOperator
+{
+  const int result = test ? a : b;
+};
+
+template<int VAL>
+struct AvoidZero
+{
+  const int val = VAL;
+};
+
+template<>
+struct AvoidZero<0>
+{
+  const int val = 1;
+};
+
+
+template<class A, class B>
+struct Equals
+{
+  const bool result = false;
+};
+
+template<class A>
+struct Equals<A,A>
+{
+  const bool result = true;
+};
 #endif
 
 
@@ -374,7 +417,18 @@ struct IterateOccupancy
   static const int OptimalOccupancy = TNext::OptimalOccupancy > ThisOccupancy ? TNext::OptimalOccupancy :  ThisOccupancy;
   static const int OptimalThreadCount = TNext::OptimalOccupancy > ThisOccupancy ? TNext::OptimalThreadCount :  MinThreadCount;
 };
+#else
+template<class TProcInfo, int MinThreadCount, int MaxThreadCount, int Step = 32>
+struct IterateOccupancy
+{
+  typedef IterateOccupancy<TProcInfo, (MinThreadCount + Step > MaxThreadCount ?  MaxThreadCount : MinThreadCount + Step), MaxThreadCount, Step> TNext;
+  const int ThisOccupancy = TProcInfo:: template GetOccupancy<MinThreadCount>::AverageOccupancy;
+  const int OptimalOccupancy = TNext::OptimalOccupancy > ThisOccupancy ? TNext::OptimalOccupancy :  ThisOccupancy;
+  const int OptimalThreadCount = TNext::OptimalOccupancy > ThisOccupancy ? TNext::OptimalThreadCount :  MinThreadCount;
+};
+#endif
 
+#ifndef OPENCL_CODE
 template<class TProcInfo, int MaxThreadCount, int Step>
 struct IterateOccupancy<TProcInfo, MaxThreadCount, MaxThreadCount, Step>
 {
@@ -382,6 +436,15 @@ struct IterateOccupancy<TProcInfo, MaxThreadCount, MaxThreadCount, Step>
   static const int OptimalOccupancy =  ThisOccupancy;
   static const int OptimalThreadCount =  MaxThreadCount;
 };
+#else
+template<class TProcInfo, int MaxThreadCount, int Step>
+struct IterateOccupancy<TProcInfo, MaxThreadCount, MaxThreadCount, Step>
+{
+  const int ThisOccupancy = TProcInfo:: template GetOccupancy<MaxThreadCount>::AverageOccupancy;
+  const int OptimalOccupancy =  ThisOccupancy;
+  const int OptimalThreadCount =  MaxThreadCount;
+};
+#endif
 
 template<class TProc, class TNext = ProcInfoEnd>
 class ProcInfo
@@ -396,37 +459,62 @@ public:
     Next::print();
   }
 
+  #ifndef OPENCL_CODE
   static const int ProcedureId = Next::ProcedureId + 1;
-
   static const int NumPhases = 1;
+  #else
+  const int ProcedureId = Next::ProcedureId + 1;
+  const int NumPhases = 1;
+  #endif
+  
   template<class TTProc, int Phase> 
   struct PhaseTraits : public AllPhasesActiveTrait<TTProc,Phase>{ };
 
   template<int Phase>
   struct Priority : public NoPriority<Phase> { };
 
+  #ifndef OPENCL_CODE
   static const int MaxId =  maxOperator< ProcedureId, Next::MaxId>::result;
   static const int MaxDataSize =  maxOperator< sizeof(typename Procedure::ExpectedData), Next::MaxDataSize>::result;
-  typedef typename DataAlignment<MaxDataSize>::Type QueueDataContainer;
-  static const int NumProcedures = Next::NumProcedures + 1;
+  #else
+  const int MaxId =  maxOperator< ProcedureId, Next::MaxId>::result;
+  const int MaxDataSize =  maxOperator< sizeof(typename Procedure::ExpectedData), Next::MaxDataSize>::result;
+  #endif
   
+  typedef typename DataAlignment<MaxDataSize>::Type QueueDataContainer;
+  #ifndef OPENCL_CODE
+  static const int NumProcedures = Next::NumProcedures + 1;
   static const bool ItemizedOnly = Procedure::ItemInput && Next::ItemizedOnly;
   static const int CombMaxNumThreads = maxOperator< Procedure::ItemInput?0:Procedure::NumThreads, Next::CombMaxNumThreads>::result;
 
   static const int MinThreadsAmongWorkpackages = Procedure::ItemInput ? Next::MinThreadsAmongWorkpackages : minOperator<Procedure::NumThreads, Next::MinThreadsAmongWorkpackages>::result;
-
+  #else
+  const int NumProcedures = Next::NumProcedures + 1;
+  const bool ItemizedOnly = Procedure::ItemInput && Next::ItemizedOnly;
+  const int CombMaxNumThreads = maxOperator< Procedure::ItemInput?0:Procedure::NumThreads, Next::CombMaxNumThreads>::result;
+  const int MinThreadsAmongWorkpackages = Procedure::ItemInput ? Next::MinThreadsAmongWorkpackages : minOperator<Procedure::NumThreads, Next::MinThreadsAmongWorkpackages>::result;
+  #endif
   
   template<int ThreadCount>
   struct GetOccupancy
   {
+	#ifndef OPENCL_CODE
     static const int UseThreads = maxOperator< Procedure::NumThreads, 1>::result;
     static const int Occupancy = ((ThreadCount / UseThreads) * UseThreads * 1000) / maxOperator<ThreadCount, 1>::result;
     static const bool Runable = ThreadCount >= UseThreads && Next:: template GetOccupancy<ThreadCount>::Runable;
-
     static const int SumOccupancy = Runable ? Next:: template GetOccupancy<ThreadCount>:: SumOccupancy + Occupancy : 0;
     static const int AverageOccupancy = SumOccupancy / NumProcedures;
+	#else
+    const int UseThreads = maxOperator< Procedure::NumThreads, 1>::result;
+    const int Occupancy = ((ThreadCount / UseThreads) * UseThreads * 1000) / maxOperator<ThreadCount, 1>::result;
+    const bool Runable = ThreadCount >= UseThreads && Next:: template GetOccupancy<ThreadCount>::Runable;
+    const int SumOccupancy = Runable ? Next:: template GetOccupancy<ThreadCount>:: SumOccupancy + Occupancy : 0;
+    const int AverageOccupancy = SumOccupancy / NumProcedures;
+    #endif
+    
   };
 
+  #ifndef OPENCL_CODE
   static const int OptimalThreadCountNonMulti = ItemizedOnly || CombMaxNumThreads == 0 ? 512 : CombMaxNumThreads;
   static const int OptimalThreadCountMulti = ItemizedOnly || CombMaxNumThreads == 0 ? 256 : IterateOccupancy<ProcInfo, CombMaxNumThreads, 1024, 32>::OptimalThreadCount;
 
@@ -435,11 +523,22 @@ public:
   {
     static const int Num = MultiElement ? OptimalThreadCountMulti : OptimalThreadCountMulti;
   };
- 
+#else
+  const int OptimalThreadCountNonMulti = ItemizedOnly || CombMaxNumThreads == 0 ? 512 : CombMaxNumThreads;
+  const int OptimalThreadCountMulti = ItemizedOnly || CombMaxNumThreads == 0 ? 256 : IterateOccupancy<ProcInfo, CombMaxNumThreads, 1024, 32>::OptimalThreadCount;
+
+  template<bool MultiElement>
+  struct OptimalThreadCount
+  {
+    const int Num = MultiElement ? OptimalThreadCountMulti : OptimalThreadCountMulti;
+  };
+#endif 
+
   //x .. procids
   //y .. data
   //z .. shared mem for procedures
   //w .. sum
+  #ifndef OPENCL_CODE
   template<bool MultiPackage>
   static cl_uint4 requiredShared(int numThreads, bool copyToShared = true, int maxShared = 49100, bool MultiExecIdentifieres = false)
   {
@@ -460,14 +559,19 @@ public:
 
     return sharedMem;
   }
-
+  #endif
+  
   template<class Proc>
   struct Contains
   {
+	#ifndef OPENCL_CODE
     static const bool value = Equals<Proc, Procedure>::result || Next:: template Contains<Proc>::value;
+    #else
+    const bool value = Equals<Proc, Procedure>::result || Next:: template Contains<Proc>::value;
+    #endif
   };
 
-
+#ifndef OPENCL_CODE
   template<bool MultiPackage>
   static void updateRequiredShared(int numThreads, cl_uint4 & sharedMem, bool copyToShared, int maxShared, bool MultiExecIdentifieres)
   {
@@ -519,9 +623,8 @@ public:
 
     Next:: template updateRequiredShared<MultiPackage>(numThreads, sharedMem, copyToShared, maxShared, MultiExecIdentifieres);
   }
-
-};
 #endif
+};
 
 
 template <typename A, typename B>
@@ -599,7 +702,7 @@ public:
 };
 #endif
 
-#ifndef OPENCL_CODE
+
 template<class Procedure, class Next = ProcInfoEnd>
 class N : public ProcInfo<Procedure, Next>
 { };
@@ -615,7 +718,7 @@ struct Select<TProcInfo, 0>
 {
   typedef typename TProcInfo::Procedure Procedure;
 };
-#endif
+
 
 #ifdef OPENCL_CODE
 template <int ElementSize>

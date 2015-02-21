@@ -55,10 +55,12 @@ public:
     maxcount = readCount = count = 0;
   }
 	#endif
+	#ifndef OPENCL_CODE
   static std::string name()
   {
     return "ExternalFetch";
   }
+  #endif
 	#ifdef OPENCL_CODE
   template<class Data>
   __inline__ /*__device__*/ bool enqueueInitial(Data data) 

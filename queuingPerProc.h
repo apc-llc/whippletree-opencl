@@ -233,6 +233,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
 
   struct NameVisitor
   {
+    #ifndef OPENCL_CODE
     std::string name;
     template<class Procedure>
     bool visit()
@@ -242,6 +243,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
       name += Procedure::name();
       return false;
     }
+    #endif
   };
 
   struct InitVisitor
@@ -426,6 +428,7 @@ public:
   static const bool supportReuseInit = true;
 	#endif
 
+#ifndef OPENCL_CODE
   static std::string name()
   {
     //NameVisitor v;
@@ -433,6 +436,7 @@ public:
     //return std::string("DistributedPerProcedure[") + v.name() + "]";
     return std::string("DistributedPerProcedure[") + InternalPackageQueue<16, PackageQueueSize, void>::name() + "," + InternalItemQueue<16, ItemQueueSize, void>::name() + "]" ;
   }
+#endif
 
 	#ifdef OPENCL_CODE
   __inline__ /*__device__*/ void init() 
