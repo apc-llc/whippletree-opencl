@@ -63,22 +63,37 @@
 //
 
 #pragma once
+
+#ifndef OPENCL_CODE
 #include <CL/cl.h>
+#endif
+
 #include "procedureInterface.h"
 #include "procinfoTemplate.h"
 #include "random.h"
+
+#ifndef OPENCL_CODE
 #include <tools/utils.h>
+#endif
 
 #include "proc2.h"
 
 class Proc1 : public ::Procedure
 {
 public:
+	#ifndef OPENCL_CODE
   typedef cl_int4 ExpectedData;
   static const int NumThreads = 4;
   static const bool ItemInput = true; // ItemInput with NumThreads = 4 results in a lvl-0 tasks
   static const int sharedMemory = sizeof(int); // amount of shared memory that is needed
+	#else
+  typedef int4 ExpectedData;
+  const int NumThreads = 4;
+  const bool ItemInput = true; // ItemInput with NumThreads = 4 results in a lvl-0 tasks
+  const int sharedMemory = sizeof(int); // amount of shared memory that is needed
+	#endif
 
+	#ifdef OPENCL_CODE
   template<class Q, class Context>
   static __inline__ void execute(int threadId, int numThreads, Q* queue,  ExpectedData* data, uint* shared) //__device__
   { 
@@ -99,4 +114,5 @@ public:
     if(myLocalThreadId == 0)
       queue-> template enqueue< Proc2 >(*data, 1);
   }
+  #endif
 };

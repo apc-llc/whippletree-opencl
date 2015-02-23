@@ -63,11 +63,17 @@
 //
 
 #pragma once
+#ifndef OPENCL_CODE
 #include <CL/cl.h>
+#endif
+
 #include "procedureInterface.h"
 #include "procinfoTemplate.h"
 #include "random.h"
+
+#ifndef OPENCL_CODE
 #include <tools/utils.h>
+#endif
 
 #include "proc1.h"
 
@@ -75,9 +81,16 @@
 class Proc0 : public ::Procedure
 {
 public:
+  #ifndef OPENCL_CODE
   typedef cl_int4 ExpectedData; // the input data
   static const int NumThreads = 1; // number of required threads
   static const bool ItemInput = true; // ItemInput with NumThreads = 1 results in a lvl-2 tasks
+  #else
+  typedef int4 ExpectedData; // the input data
+  const int NumThreads = 1; // number of required threads
+  const bool ItemInput = true; // ItemInput with NumThreads = 1 results in a lvl-2 tasks
+  #endif
+
 
 #ifdef OPENCL_CODE  
   template<class Q, class Context>
