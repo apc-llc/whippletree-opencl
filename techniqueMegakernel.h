@@ -459,23 +459,23 @@ namespace Megakernel
 
 
 #ifdef OPENCL_CODE
-  template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
-  __kernel void megakernel(Q * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
-  {
-  /*
+ template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, class Maintainer, class TimeLimiter, class StopCriteria>
+  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,__global globalvarsT * globalvars)  
+  {  
     if(q == 0)
     {
-      if(globalvars.maxConcurrentBlockEvalDone != 0)
+      if(globalvars->maxConcurrentBlockEvalDone != 0)
         return;
       if(get_local_id(0) == 0)
-        atomicAdd(&globalvars.maxConcurrentBlocks, 1);
+        atomic_add(&globalvars->maxConcurrentBlocks, 1);
       DelayFMADS<10000,4>::delay();
       barrier(CLK_LOCAL_MEM_FENCE);
-      maxConcurrentBlockEvalDone = 1;
+      globalvars->maxConcurrentBlockEvalDone = 1;
 		write_mem_fence(CLK_GLOBAL_MEM_FENCE);
 		//__threadfence();
       return;
     }
+    /*
     __local volatile int runState;
 
     if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown))
@@ -569,15 +569,15 @@ namespace Megakernel
       q->workerMaintain();
     }
     q->workerEnd();
-    */
+*/
   }
 #include "../../commonDefinitions.h"
 
-//template __attribute__((mangled_name(mkt))) 
-//__kernel void megakernel(MyQueue<int> Q, TestProcInfo PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
+template __attribute__((mangled_name(mkt))) 
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, int, bool, bool, bool, int, MegakernelStopCriteria> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, __global globalvarsT * globalvars);
 
-//__kernel void megakernel(MyQueue Q, TestProcInfo PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
-//__kernel void megakernel(int * q, cl_uint4 sharedMemDist, int t, int* shutdown);
+//  template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
+//  __kernel void megakernel(Q * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
 #endif
 
 #ifndef OPENCL_CODE
