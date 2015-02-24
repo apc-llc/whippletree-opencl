@@ -8,8 +8,8 @@
 
 
 #include "examples/queuing/proc0.h"
-#include "examples/queuing/proc1.h"
-#include "examples/queuing/proc2.h"
+//#include "examples/queuing/proc1.h"
+//#include "examples/queuing/proc2.h"
 
 
 //somehow we need to get something into the queue

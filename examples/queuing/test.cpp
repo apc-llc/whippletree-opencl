@@ -79,10 +79,6 @@ extern cl_device_id *devices;
 #include "techniqueMegakernel.h"
 #include "segmentedStorage.h"
 
-#include "proc0.h"
-#include "proc1.h"
-#include "proc2.h"
-
 #include "../../commonDefinitions.h"
 
 

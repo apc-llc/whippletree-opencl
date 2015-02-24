@@ -62,7 +62,7 @@
 //  THE SOFTWARE.
 //
 
-#pragma once
+
 #ifndef OPENCL_CODE
 #include <CL/cl.h>
 #endif

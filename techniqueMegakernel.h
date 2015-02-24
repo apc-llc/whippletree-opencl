@@ -573,8 +573,8 @@ namespace Megakernel
   }
 #include "../../commonDefinitions.h"
 
-template __attribute__((mangled_name(mkt))) 
-__kernel void megakernel (MyQueue <TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars);
+//template __attribute__((mangled_name(mkt))) 
+//__kernel void megakernel(MyQueue<int> Q, TestProcInfo PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
 
 //__kernel void megakernel(MyQueue Q, TestProcInfo PROCINFO, int CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, int TimeLimiter, int StopCriteria);
 //__kernel void megakernel(int * q, cl_uint4 sharedMemDist, int t, int* shutdown);
