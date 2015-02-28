@@ -73,14 +73,11 @@ extern cl_device_id *devices;
 #endif
 
 
-#include "queueDistLocks.h"
-#include "queueShared.h"
-#include "queuingPerProc.h"
 #include "techniqueMegakernel.h"
-#include "segmentedStorage.h"
 
+#ifndef OPENCL_CODE
 #include "../../commonDefinitions.h"
-
+#endif
 
 #ifndef OPENCL_CODE
 void runTest(int used_cl_device)

@@ -31,6 +31,12 @@
 //
 
 //#pragma once commented out for a while (to compile separately)
+#pragma once
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+#ifdef OPENCL_CODE
+#include "../../commonDefinitions.h"
+#endif
 
 #ifndef OPENCL_CODE
 #include <memory>
@@ -40,16 +46,14 @@
 #include "tools/cl_memory.h"
 #include <iostream>
 #include "timing.h"
-#include "delay.h"
 #include "techniqueInterface.h"
 #endif
 
-
-#include "procinfoTemplate.h"
+#include "delay.h"
+//#include "procinfoTemplate.h"
 #include "queuingMultiPhase.h"
 #include "techniqueMegakernelVars.h"
 
-//#include "techniqueMegakernel.h"//reordered123 from cu to h and this from cuh to cpp
 
 namespace SegmentedStorage
 {
@@ -460,14 +464,14 @@ namespace Megakernel
 
 #ifdef OPENCL_CODE
  template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, class Maintainer, class TimeLimiter, class StopCriteria>
-  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,__global globalvarsT * globalvars)  
+  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global globalvarsT * globalvars)  
   {  
     if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
         return;
       if(get_local_id(0) == 0)
-        atomic_add(&globalvars->maxConcurrentBlocks, 1);
+        atomic_add(&(globalvars->maxConcurrentBlocks), 1);
       DelayFMADS<10000,4>::delay();
       barrier(CLK_LOCAL_MEM_FENCE);
       globalvars->maxConcurrentBlockEvalDone = 1;
@@ -475,29 +479,29 @@ namespace Megakernel
 		//__threadfence();
       return;
     }
-    /*
+    
     __local volatile int runState;
 
-    if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown))
-      return;
+    //if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown))
+    //  return;
 
     __local TimeLimiter timelimiter;
 
     if(get_local_id(0) == 0)
     {
-      if(endCounter == 0)
+      if(globalvars->endCounter == 0)
         runState = 0;
       else
       {
-        atomicAdd((int*)&globalvars.doneCounter,1);
-        if(atomicAdd((int*)&globalvars.endCounter,1) == 2597)
-          atomicSub((int*)&globalvars.endCounter, 2597);
-        runState = 1;
+       //atomic_add(&globalvars->doneCounter,1);
+       // if(atomicAdd((int*)&globalvars.endCounter,1) == 2597)
+       //   atomic_sub(&globalvars->endCounter, 2597);
+       // runState = 1;
       }
     }
-    q->workerStart();
+    //q->workerStart();
     barrier(CLK_LOCAL_MEM_FENCE);
-
+	/*
     while(runState)
     {
       int hasResult = MegakernelLogics<Q, PROCINFO, CUSTOM, CopyToShared, MultiElement, Q::needTripleCall>::run(q, sharedMemDist);
@@ -571,13 +575,11 @@ namespace Megakernel
     q->workerEnd();
 */
   }
-#include "../../commonDefinitions.h"
+
 
 template __attribute__((mangled_name(mkt))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, int, bool, bool, bool, int, MegakernelStopCriteria> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, __global globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, int, bool, bool, bool, int, MegakernelStopCriteria> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
 
-//  template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
-//  __kernel void megakernel(Q * q, uint4 sharedMemDist, int t, int* shutdown, globalvarsT globalvars)
 #endif
 
 #ifndef OPENCL_CODE

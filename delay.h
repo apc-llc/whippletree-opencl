@@ -67,8 +67,10 @@ public:
        BigData[threadIdx.x+r*32] =  values[r];
 	*/
   }
+  #ifndef OPENCL_CODE
   static std::string name() { return "DelayClock";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "available Giga Cycles (" + std::to_string((long long)REGS) + "regs)";}
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 1.0*executedThreads*ITS/1000000000.0/s; }
 };
 template<int ITS>
@@ -79,8 +81,10 @@ public:
   static void delay()
   {
   }
+  #ifndef OPENCL_CODE
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 0.0; }
 };
 
@@ -108,9 +112,12 @@ public:
        BigData[threadIdx.x+r*32] =  values[r];
 	*/
   }
+  #ifndef OPENCL_CODE
   static std::string name() { return "DelayFMADS";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "GFLOPS (" + std::to_string((long long)REGS) + "regs)";}
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 2.0*executedThreads*ITS/1000000000.0/s; }
+
 };
 
 template<int ITS>
@@ -121,8 +128,11 @@ public:
   static void delay()
   {
   }
+
+	#ifndef OPENCL_CODE	
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 0.0; }
 };
 
@@ -148,8 +158,10 @@ public:
     }
 	*/
   }
+  #ifndef OPENCL_CODE
   static std::string name() { return std::string("DelayMem");/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "transfer rate GB/s(" + std::to_string((long long)REGS) + "regs)";}
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 4.0*executedThreads*ITS/1000000000.0/s; }
 };
 
@@ -161,7 +173,9 @@ public:
   static void delay()
   {
   }
+  #ifndef OPENCL_CODE
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
+  #endif
   static double performancePerSec(int executedThreads, double s) { return 0.0; }
 };

@@ -2,11 +2,11 @@ namespace Megakernel
 {
 	struct globalvarsT
 	{
-		volatile int doneCounter;
-		volatile int endCounter;
+		volatile uint doneCounter;
+		volatile uint endCounter;
 
-		volatile int maxConcurrentBlocks; //=0
-		volatile int maxConcurrentBlockEvalDone;//=0
+		volatile uint maxConcurrentBlocks; //=0
+		volatile uint maxConcurrentBlockEvalDone;//=0
 	};
 }
 
