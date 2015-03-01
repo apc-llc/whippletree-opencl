@@ -394,17 +394,48 @@ public:
     printf("\n");
   }
 
-   const int ProcedureId = 0;
+  const int ProcedureId = 0;
 
-   const int MaxId = 0;
-   const int MaxDataSize = 0;
-   const int NumProcedures = 0;
-   const bool ItemizedOnly = true;
-   const int CombMaxNumThreads = 0;
+  const int MaxId = 0;
+  const int MaxDataSize = 0;
+  const int NumProcedures = 0;
+  const bool ItemizedOnly = true;
+  const int CombMaxNumThreads = 0;
 
-   const int MinThreadsAmongWorkpackages = 2048;
+  const int MinThreadsAmongWorkpackages = 2048;
 
- 
+  template<int ThreadCount>
+  struct GetOccupancy
+  {
+    const bool Runable = true;
+    const int SumOccupancy = 0;
+  };
+
+  template<bool MultiPackage>
+  static void updateRequiredShared(int numThreads, uint4& sharedMem, bool copyToShared, int maxShared, bool MultiExecIdentifieres)
+  {
+  }
+
+  template<class Proc>
+  struct Contains
+  {
+    const bool value = false;
+  };
+
+  template<bool MultiElement>
+  struct OptimalThreadCount
+  {
+    const int Num = 0;
+  };
+
+  template<bool MultiPackage>
+  uint4 requiredShared(int numThreads, bool copyToShared = true, int maxShared = 49100, bool MultiExecIdentifieres = false)
+  {
+    uint4 sharedMem;
+    sharedMem.s[0] = sharedMem.s[1] = sharedMem.s[2] = sharedMem.s[3] = 0;
+    return sharedMem;
+  }
+
 };
 #endif
 
