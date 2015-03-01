@@ -70,6 +70,7 @@
 
 cl_context context;
 cl_device_id *devices;
+cl_command_queue cmdQueue;
     
 void runTest(int used_cl_device);
 

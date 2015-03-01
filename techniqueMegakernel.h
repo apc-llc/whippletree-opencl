@@ -41,12 +41,16 @@
 #ifndef OPENCL_CODE
 #include <memory>
 #include <vector>
-
+#include <CL/cl.h>
 #include "tools/utils.h"
 #include "tools/cl_memory.h"
 #include <iostream>
 #include "timing.h"
 #include "techniqueInterface.h"
+
+extern cl_context context;
+extern cl_device_id *devices;
+extern cl_command_queue cmdQueue;
 #endif
 
 #include "delay.h"
@@ -288,7 +292,7 @@ namespace Megakernel
           {
             if(globalvars->endCounter == 0)
             {
-              if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
+              if(StopCriteria == EmptyQueue)
                 run = false;
               else if (shutdown)
               {
@@ -494,18 +498,18 @@ namespace Megakernel
         runState = 0;
       else
       {
-       //atomic_add(&globalvars->doneCounter,1);
-       // if(atomicAdd((int*)&globalvars.endCounter,1) == 2597)
-       //   atomic_sub(&globalvars->endCounter, 2597);
-       // runState = 1;
+       atom_add(&globalvars->doneCounter,1);
+        if(atom_add(&globalvars->endCounter,1) == 2597)
+          atom_sub(&globalvars->endCounter, 2597);
+        runState = 1;
       }
     }
-    //q->workerStart();
+    q->workerStart();
     barrier(CLK_LOCAL_MEM_FENCE);
-	/*
+	
     while(runState)
     {
-      int hasResult = MegakernelLogics<Q, PROCINFO, CUSTOM, CopyToShared, MultiElement, Q::needTripleCall>::run(q, sharedMemDist);
+      int hasResult = 0;//MegakernelLogics<Q, PROCINFO, CUSTOM, CopyToShared, MultiElement, Q::needTripleCall>::run(q, sharedMemDist);
       if(get_local_id(0) == 0)
       {
         if(timelimiter.stop(t))
@@ -516,14 +520,14 @@ namespace Megakernel
           {
             //back on working
             runState = 1;
-            atomicAdd((int*)&globalvars.doneCounter,1);
-            atomicAdd((int*)&globalvars.endCounter,1);
+            atom_add(&globalvars->doneCounter,1);
+            atom_add(&globalvars->endCounter,1);
           }
           else if(runState == 2)
           {
             //back on working
             runState = 1;
-            atomicAdd((int*)&globalvars.doneCounter,1);
+            atom_add(&globalvars->doneCounter,1);
           }
         }
         else
@@ -532,33 +536,33 @@ namespace Megakernel
           if(runState == 1)
           {
             //first time we are out of work
-            atomicSub((int*)&globalvars.doneCounter,1);
+            atom_sub(&globalvars->doneCounter,1);
             runState = 2;
           }
           else if(runState == 2)
           {
-            if(globalvars.doneCounter == 0)
+            if(globalvars->doneCounter == 0)
             {
               //everyone seems to be out of work -> get ready for end
-              atomicSub((int*)&globalvars.endCounter,1);
+              atom_sub(&globalvars->endCounter,1);
               runState = 3;
             }
           }
           else if(runState == 3)
           {
-            int d = globalvars.doneCounter;
-            int e = globalvars.endCounter;
+            int d = globalvars->doneCounter;
+            int e = globalvars->endCounter;
             //printf("%d %d %d\n",get_group_id(0) , d, e);
-            if(globalvars.doneCounter != 0)
+            if(globalvars->doneCounter != 0)
             {
               //someone started to work again
-              atomicAdd((int*)&globalvars.endCounter,1);
+              atom_add(&globalvars->endCounter,1);
               runState = 2;
             }
-            else if(globalvars.endCounter == 0)
+            else if(globalvars->endCounter == 0)
             {
               //everyone is really out of work
-              if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
+              if(StopCriteria == EmptyQueue)
                 runState = 0;
               else if (shutdown)
               {
@@ -574,12 +578,11 @@ namespace Megakernel
       q->workerMaintain();
     }
     q->workerEnd();
-*/
   }
 
 
 template __attribute__((mangled_name(mkt))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, int, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, TimeLimiter<0,false>, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
 
 #endif
 
@@ -647,8 +650,14 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
           technique.sharedMemSum[Phase] = std::max(temp1,temp2);
 
         //get number of blocks to start - gk110 screwes with mutices...
-        int nblocks = 0;
-        //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
+		cl_mem dev_globalvars;
+		globalvarsT globalvars;
+		cl_int status;
+		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
+		CL_CHECKED_CALL(status);
+		globalvars.maxConcurrentBlockEvalDone=0;
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_FALSE, 0, sizeof(globalvarsT), &globalvars, 0, NULL, NULL));
+        
         //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
 		        
 		//1megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
@@ -656,7 +665,7 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
 
         //CL_CHECKED_CALL(clFlush());
         //CL_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
-        technique.blocks[Phase] = nblocks;
+        technique.blocks[Phase] = globalvars.maxConcurrentBlocks;
         //std::cout << "blocks: " << blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
           printf("ERROR: in Megakernel confguration: dummy launch failed. Check shared memory consumption\n");

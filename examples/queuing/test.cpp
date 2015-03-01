@@ -70,6 +70,7 @@
 
 extern cl_context context;
 extern cl_device_id *devices;
+extern cl_command_queue cmdQueue;
 #endif
 
 

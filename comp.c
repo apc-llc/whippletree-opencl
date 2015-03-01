@@ -11,6 +11,8 @@ char *mycode;
 size_t source_size;
 #define MAX_SOURCE_SIZE (0x1000000)
 
+extern cl_command_queue cmdQueue;
+
 //Error checking Macro
 #include <assert.h>
 #define clErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
@@ -65,7 +67,6 @@ void compile_device_code() {
 	clErrchk(status);
 
     //Creating command queue
-    cl_command_queue cmdQueue;
     cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
 	clErrchk(status);
 
