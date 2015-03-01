@@ -270,12 +270,13 @@ namespace Megakernel
   {
   public:
     #ifdef OPENCL_CODE
-    static __inline__  bool RunMaintainer(Q* q, int* shutdown)
+    static __inline__  bool RunMaintainer(Q* q, int* shutdown, __global globalvarsT * globalvars)
     {
       
       if(get_group_id(0) == 1)
       {
-        __local bool run;
+        //__local 
+        bool run;
         run = true;
         barrier(CLK_LOCAL_MEM_FENCE);
         int runs = 0;
@@ -285,7 +286,7 @@ namespace Megakernel
           barrier(CLK_LOCAL_MEM_FENCE);
           if(runs > 10)
           {
-            if(endCounter == 0)
+            if(globalvars->endCounter == 0)
             {
               if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
                 run = false;
@@ -310,7 +311,7 @@ namespace Megakernel
   {
   public:
 	#ifdef OPENCL_CODE
-    static __inline__  bool RunMaintainer(Q* q, int* shutdown)
+    static __inline__  bool RunMaintainer(Q* q, int* shutdown, __global globalvarsT * globalvars)
     {
       return false;
     }
@@ -463,7 +464,7 @@ namespace Megakernel
 
 
 #ifdef OPENCL_CODE
- template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, class Maintainer, class TimeLimiter, class StopCriteria>
+ template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
   __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global globalvarsT * globalvars)  
   {  
     if(q == 0)
@@ -471,7 +472,7 @@ namespace Megakernel
       if(globalvars->maxConcurrentBlockEvalDone != 0)
         return;
       if(get_local_id(0) == 0)
-        atomic_add(&(globalvars->maxConcurrentBlocks), 1);
+        atom_add(&(globalvars->maxConcurrentBlocks), 1);
       DelayFMADS<10000,4>::delay();
       barrier(CLK_LOCAL_MEM_FENCE);
       globalvars->maxConcurrentBlockEvalDone = 1;
@@ -482,8 +483,8 @@ namespace Megakernel
     
     __local volatile int runState;
 
-    //if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown))
-    //  return;
+    if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown, globalvars))
+      return;
 
     __local TimeLimiter timelimiter;
 
@@ -578,7 +579,7 @@ namespace Megakernel
 
 
 template __attribute__((mangled_name(mkt))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, int, bool, bool, bool, int, MegakernelStopCriteria> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, int, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
 
 #endif
 
