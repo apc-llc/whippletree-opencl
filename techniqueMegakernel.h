@@ -657,7 +657,7 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
         dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);
         host_globalvars.maxConcurrentBlockEvalDone=0;
-		clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL);
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         
         //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
 		        
@@ -665,7 +665,7 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
 
 
         //CL_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
-		clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL);
+		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         technique.blocks[Phase] = host_globalvars.maxConcurrentBlocks;
         std::cout << "blocks: " << technique.blocks << std::endl;
         if(technique.blocks[Phase]  == 0)

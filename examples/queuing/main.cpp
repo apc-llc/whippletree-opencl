@@ -112,7 +112,7 @@ int main(int argc, char** argv)
     context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
 	clErrchk(status);
 
-	cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
+	cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
 	clErrchk(status);
 	kernels=(cl_kernel*)malloc(sizeof(cl_kernel));
 	

@@ -69,9 +69,9 @@ void compile_device_code() {
 	clErrchk(status);
 	char *build_log;
 	size_t ret_val_size;
-	clErrchk(clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size));
+	clErrchk(clGetProgramBuildInfo(program, devices[used_cl_device], CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size));
 	build_log = new char[ret_val_size+1];
-	clErrchk(clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL));
+	clErrchk(clGetProgramBuildInfo(program, devices[used_cl_device], CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL));
 
 	// to be carefully, terminate with \0
 	// there's no information in the reference whether the string is 0 terminated or not
