@@ -71,6 +71,12 @@
 extern cl_context context;
 extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
+extern cl_kernel * kernels;
+extern cl_uint numDevices;
+extern int used_cl_device;
+extern cl_uint numPlatforms;
+extern cl_platform_id *platforms;
+extern cl_program program;
 #endif
 
 
@@ -81,13 +87,10 @@ extern cl_command_queue cmdQueue;
 #endif
 
 #ifndef OPENCL_CODE
-void runTest(int used_cl_device)
+void runTest()
 {
 	cl_int status;	
-	cl_command_queue cmdQueue;
-    cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
-	clErrchk(status);
-
+	
   //create everything
   MyTechnique technique;
   

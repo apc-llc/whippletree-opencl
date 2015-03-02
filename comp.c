@@ -11,8 +11,16 @@ char *mycode;
 size_t source_size;
 #define MAX_SOURCE_SIZE (0x1000000)
 
+extern cl_context context;
+extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
 extern cl_kernel * kernels;
+extern cl_uint numDevices;
+extern int used_cl_device;
+extern cl_uint numPlatforms;
+extern cl_platform_id *platforms;
+extern cl_program program;
+
 
 //Error checking Macro
 #include <assert.h>
@@ -30,7 +38,7 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 bool readKernelFromFile()
 {
 	FILE *fp;
-	fp= fopen("test.cpp","r");
+	fp= fopen("./test.cpp","r");
 	if (!fp)
 	{
 		printf("Failed to load kernel/ \n");
@@ -47,34 +55,9 @@ void compile_device_code() {
     // This code executes on the OpenCL host
     cl_int status;  
       
-    //Initializing platform
-    cl_uint numPlatforms = 0;
-    cl_platform_id *platforms = NULL;
-    clErrchk(clGetPlatformIDs(0, NULL, &numPlatforms));
-    platforms = (cl_platform_id*)malloc(numPlatforms*sizeof(cl_platform_id));
-	clErrchk(clGetPlatformIDs(numPlatforms, platforms,NULL));
-    
-
-    //Initialize device
-    cl_uint numDevices = 0;
-    cl_device_id *devices = NULL;
-    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices));
-    devices = (cl_device_id*)malloc(numDevices*sizeof(cl_device_id));
-    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL));
-
-    //Creating context
-    cl_context context = NULL;
-    context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
-	clErrchk(status);
-
-    //Creating command queue
-    cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
-	clErrchk(status);
-	kernels=(cl_kernel*)malloc(sizeof(cl_kernel));
-	//Reading and compiling program
     if(!readKernelFromFile())
 		exit(1);
-    cl_program program = clCreateProgramWithSource(context, 1, (const char**)&mycode, &source_size, &status);
+    program = clCreateProgramWithSource(context, 1, (const char**)&mycode, &source_size, &status);
 	clErrchk(status);
 
 	
@@ -97,14 +80,4 @@ void compile_device_code() {
 	std::cout << "BUILD LOG: '" << "'" << std::endl;
 	std::cout << build_log << std::endl;
 	delete[] build_log;
-
-
-    // Free OpenCL resources
-    clErrchk(clReleaseProgram(program));
-    clErrchk(clReleaseCommandQueue(cmdQueue));
-    clErrchk(clReleaseContext(context));
-
-    // Free host resources
-    free(platforms);
-    free(devices);
 }

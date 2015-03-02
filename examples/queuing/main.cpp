@@ -72,26 +72,28 @@ cl_context context;
 cl_device_id *devices;
 cl_command_queue cmdQueue;
 cl_kernel * kernels;
+cl_uint numDevices;
+int used_cl_device;
+cl_uint numPlatforms;
+cl_platform_id *platforms;
+cl_program program;
     
-void runTest(int used_cl_device);
+void runTest();
 
 int main(int argc, char** argv)
 {
   try
   {
 	cl_int status;
-	int used_cl_device = argc > 1 ? atoi(argv[1]) : 0;
+	used_cl_device = argc > 1 ? atoi(argv[1]) : 0;
 
     //Initializing platform
-    cl_uint numPlatforms = 0;
-    cl_platform_id *platforms = NULL;
     clErrchk(clGetPlatformIDs(0, NULL, &numPlatforms));
     platforms = (cl_platform_id*)malloc(numPlatforms*sizeof(cl_platform_id));
     clErrchk(clGetPlatformIDs(numPlatforms, platforms,NULL));
     
 
     //Initialize device
-    cl_uint numDevices;
     clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices));
     devices = (cl_device_id*)malloc(numDevices*sizeof(cl_device_id));
     clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL));
@@ -110,6 +112,10 @@ int main(int argc, char** argv)
     context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
 	clErrchk(status);
 
+	cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
+	clErrchk(status);
+	kernels=(cl_kernel*)malloc(sizeof(cl_kernel));
+	
     //Creating command queue
     
 /*
@@ -130,7 +136,7 @@ int main(int argc, char** argv)
 
 
 
-	runTest(used_cl_device);
+	runTest();
 
 
 #ifdef WIN32
@@ -138,9 +144,13 @@ int main(int argc, char** argv)
     getchar();
 #endif
 
-
+    // Free OpenCL resources
+    clErrchk(clReleaseProgram(program));
+    clErrchk(clReleaseCommandQueue(cmdQueue));
     clErrchk(clReleaseContext(context));
-	free(platforms);
+
+    // Free host resources
+    free(platforms);
     free(devices);
 	return 0;
 	}
