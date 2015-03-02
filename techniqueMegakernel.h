@@ -471,7 +471,7 @@ namespace Megakernel
 #ifdef OPENCL_CODE
  template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
   __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global globalvarsT * globalvars)  
-  {  
+  {  /*
     if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
@@ -578,11 +578,11 @@ namespace Megakernel
       barrier(CLK_LOCAL_MEM_FENCE);
       q->workerMaintain();
     }
-    q->workerEnd();
+    q->workerEnd();*/
   }
 
 
-template __attribute__((mangled_name(megakernel_1inst))) 
+template __attribute__((mangled_name(megakernel1))) 
 __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, TimeLimiter<0,false>, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
 
 #endif

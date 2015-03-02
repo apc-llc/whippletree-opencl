@@ -65,7 +65,7 @@ void compile_device_code() {
 	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/queuing/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
     clErrchk(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     
-	kernels[0] = clCreateKernel(program, "megakernel_1inst", &status);
+	kernels[0] = clCreateKernel(program, "megakernel1", &status);
 	clErrchk(status);
 	char *build_log;
 	size_t ret_val_size;
