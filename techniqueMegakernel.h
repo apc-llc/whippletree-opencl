@@ -51,6 +51,7 @@
 extern cl_context context;
 extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
+extern cl_kernel * kernels;
 #endif
 
 #include "delay.h"
@@ -581,7 +582,7 @@ namespace Megakernel
   }
 
 
-template __attribute__((mangled_name(mkt))) 
+template __attribute__((mangled_name(megakernel_1inst))) 
 __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, TimeLimiter<0,false>, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
 
 #endif
@@ -651,22 +652,22 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
 
         //get number of blocks to start - gk110 screwes with mutices...
 		cl_mem dev_globalvars;
-		globalvarsT globalvars;
+		globalvarsT host_globalvars;
 		cl_int status;
-		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
+        dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);
-		globalvars.maxConcurrentBlockEvalDone=0;
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_FALSE, 0, sizeof(globalvarsT), &globalvars, 0, NULL, NULL));
+        host_globalvars.maxConcurrentBlockEvalDone=0;
+		clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL);
         
         //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
 		        
 		//1megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
-        //CL_CHECKED_CALL(clFlush());
         //CL_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
-        technique.blocks[Phase] = globalvars.maxConcurrentBlocks;
-        //std::cout << "blocks: " << blocks << std::endl;
+		clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL);
+        technique.blocks[Phase] = host_globalvars.maxConcurrentBlocks;
+        std::cout << "blocks: " << technique.blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
           printf("ERROR: in Megakernel confguration: dummy launch failed. Check shared memory consumption\n");
         return false;

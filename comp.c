@@ -12,6 +12,7 @@ size_t source_size;
 #define MAX_SOURCE_SIZE (0x1000000)
 
 extern cl_command_queue cmdQueue;
+extern cl_kernel * kernels;
 
 //Error checking Macro
 #include <assert.h>
@@ -69,7 +70,7 @@ void compile_device_code() {
     //Creating command queue
     cmdQueue = clCreateCommandQueue(context, devices[0], 0, &status);
 	clErrchk(status);
-
+	kernels=(cl_kernel*)malloc(sizeof(cl_kernel));
 	//Reading and compiling program
     if(!readKernelFromFile())
 		exit(1);
@@ -79,11 +80,10 @@ void compile_device_code() {
 	
 	char options[1024*1024];
 	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/queuing/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
-    /*clErrchk*/(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
+    clErrchk(clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     
-	cl_kernel kernel = NULL;
-	kernel = clCreateKernel(program, "mkt", &status);
-	/*clErrchk(status)*/;
+	kernels[0] = clCreateKernel(program, "megakernel_1inst", &status);
+	clErrchk(status);
 	char *build_log;
 	size_t ret_val_size;
 	clErrchk(clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size));
