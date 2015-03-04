@@ -467,11 +467,12 @@ namespace Megakernel
     #endif
   };
 
+}
 
 #ifdef OPENCL_CODE
- template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
-  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global globalvarsT * globalvars)  
-  {  /*
+ template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
+  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
+  {  
     if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
@@ -488,7 +489,7 @@ namespace Megakernel
     
     __local volatile int runState;
 
-    if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown, globalvars))
+    if(Megakernel::MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown, globalvars))
       return;
 
     __local TimeLimiter timelimiter;
@@ -563,7 +564,7 @@ namespace Megakernel
             else if(globalvars->endCounter == 0)
             {
               //everyone is really out of work
-              if(StopCriteria == EmptyQueue)
+              if(StopCriteria == Megakernel::EmptyQueue)
                 runState = 0;
               else if (shutdown)
               {
@@ -578,15 +579,16 @@ namespace Megakernel
       barrier(CLK_LOCAL_MEM_FENCE);
       q->workerMaintain();
     }
-    q->workerEnd();*/
+    q->workerEnd();
   }
 
 
 template __attribute__((mangled_name(megakernel1))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, TimeLimiter<0,false>, EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
 #endif
 
+namespace Megakernel {
 #ifndef OPENCL_CODE
 /*--------------------------------------------------------------------------------------------------------------------------------------*/
 
