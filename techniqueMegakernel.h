@@ -37,7 +37,7 @@
 #ifdef OPENCL_CODE
 #include "../../commonDefinitions.h"
 #endif
-
+#include "techniqueMegakernelVars.h"
 #ifndef OPENCL_CODE
 #include <memory>
 #include <vector>
@@ -52,12 +52,14 @@ extern cl_context context;
 extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
 extern cl_kernel * kernels;
+//global variables
+cl_mem dev_globalvars;
+Megakernel::globalvarsT host_globalvars;
 #endif
 
 #include "delay.h"
 //#include "procinfoTemplate.h"
 #include "queuingMultiPhase.h"
-#include "techniqueMegakernelVars.h"
 
 
 namespace SegmentedStorage
@@ -653,21 +655,31 @@ namespace Megakernel {
           technique.sharedMemSum[Phase] = std::max(temp1,temp2);
 
         //get number of blocks to start - gk110 screwes with mutices...
-		cl_mem dev_globalvars;
-		globalvarsT host_globalvars;
 		cl_int status;
-        dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
-		CL_CHECKED_CALL(status);
+        
         host_globalvars.maxConcurrentBlockEvalDone=0;
 		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         
-        //CL_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
-		        
+        
+		//Setting kernel arguments
+	    //CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &bufferA));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &bufferB));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernel[0], 2, sizeof(cl_mem), &bufferC));
+
+		//Setting worksizes
+		size_t localWorkSize[1];
+		localWorkSize[0]=BLOCK_SIZE;
+	    size_t globalWorkSize[1];
+	    globalWorkSize[0] = 512;
+
+
+		//Executing kernel
+	    //CL_CHECKED_CALL(clEnqueueNDRangeKernel(cmdQueue, kernels[0], 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL));        
 		//1megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
-        //CL_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
-		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
+
+		//CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         technique.blocks[Phase] = host_globalvars.maxConcurrentBlocks;
         std::cout << "blocks: " << technique.blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
@@ -692,15 +704,21 @@ namespace Megakernel {
 
     void init()
     {
-      q = std::unique_ptr<cl_mem, cuda_deleter>(cudaAlloc<Q>());
-
+    	q = std::unique_ptr<cl_mem, cuda_deleter>(cudaAlloc<Q>());
+		cl_int status;
+		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
+		CL_CHECKED_CALL(status);
+		CL_CHECKED_CALL(clFlush(cmdQueue));
       int magic = 2597, null = 0;
+      host_globalvars.doneCounter=null;
+      host_globalvars.endCounter=magic;
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
-
-      SegmentedStorage::checkReinitStorage();
+      //CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
+      
+      //SegmentedStorage::checkReinitStorage();
       //initQueue<Q> <<<512, 512>>>(q.get());
-      //CL_CHECKED_CALL(clFlush());
+      //CL_CHECKED_CALL(clFlush(cmdQueue));
 
 
       InitPhaseVisitor v(*this);
@@ -710,7 +728,7 @@ namespace Megakernel {
       int dev;
       //CL_CHECKED_CALL(cudaGetDevice(&dev));
       //CL_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
-      //freq = static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
+      freq = 1600*1000;//static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
     }
 
     void resetQueue()
