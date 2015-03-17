@@ -116,7 +116,7 @@ void runTest()
 
 	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL));
 	//time += (time_end - time_start)/1e+6;
-	clErrchk(clReleaseCommandQueue(cmdQueue));
+	//clErrchk(clReleaseCommandQueue(cmdQueue));
 
   printf("run completed in %fs\n", time);
 }

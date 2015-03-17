@@ -473,8 +473,8 @@ namespace Megakernel
 
 #ifdef OPENCL_CODE
  template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
-  __kernel void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
-  {  
+  __kernel void megakernel(Q* q)//, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
+  {  /*
     if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
@@ -487,6 +487,7 @@ namespace Megakernel
 		write_mem_fence(CLK_GLOBAL_MEM_FENCE);
 		//__threadfence();
       return;
+      
     }
     
     __local volatile int runState;
@@ -581,12 +582,12 @@ namespace Megakernel
       barrier(CLK_LOCAL_MEM_FENCE);
       q->workerMaintain();
     }
-    q->workerEnd();
+    q->workerEnd();*/
   }
 
 
 template __attribute__((mangled_name(megakernel1))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int* shutdown, volatile __global Megakernel::globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (MyQueue<TestProcInfo> * q);//, uint4 sharedMemDist, int t, int* shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
 #endif
 
@@ -604,7 +605,8 @@ namespace Megakernel {
 
   protected:    
     
-    std::unique_ptr<cl_mem, cuda_deleter> q;
+    //std::unique_ptr<cl_mem, cl_deleter> q;
+    cl_mem q;
 
     int blockSize[PROCINFO::NumPhases];
     int blocks[PROCINFO::NumPhases];
@@ -662,9 +664,13 @@ namespace Megakernel {
         
         
 		//Setting kernel arguments
-	    //CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &bufferA));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernel[0], 1, sizeof(cl_mem), &bufferB));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernel[0], 2, sizeof(cl_mem), &bufferC));
+	    //Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars
+	    //CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 2, sizeof(int), NULL));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 3, sizeof(int), 0));
+    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &dev_globalvars));
+    	
 
 		//Setting worksizes
 		size_t localWorkSize[1];
@@ -704,8 +710,9 @@ namespace Megakernel {
 
     void init()
     {
-    	q = std::unique_ptr<cl_mem, cuda_deleter>(cudaAlloc<Q>());
 		cl_int status;
+    	q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);//std::unique_ptr<cl_mem, cl_deleter>(clAlloc<Q>());
+		CL_CHECKED_CALL(status);
 		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);
 		CL_CHECKED_CALL(clFlush(cmdQueue));
