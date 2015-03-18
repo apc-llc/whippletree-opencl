@@ -59,13 +59,13 @@ void compile_device_code() {
 		exit(1);
     program = clCreateProgramWithSource(context, 1, (const char**)&mycode, &source_size, &status);
 	clErrchk(status);
-
 	
 	char options[1024*1024];
 	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/queuing/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
     (clBuildProgram(program, numDevices, devices, options, NULL, NULL));
-    
+    std::cout << "Program built \n"<< std::endl;
 	kernels[0] = clCreateKernel(program, "megakernel1", &status);
+//	kernels[1] = clCreateKernel(program, "init_queue1", &status);
 	//clErrchk(status);
 	char *build_log;
 	size_t ret_val_size;

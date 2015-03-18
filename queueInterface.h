@@ -35,6 +35,13 @@
 #include <string>
 #endif
 
+#ifdef OPENCL_CODE
+//template<class ProcInfo>
+
+//#include "techniqueMegakernel.h"
+//#include "../../commonDefinitions.h"
+#endif
+
 template<bool TWarnings = true>
 class Queue
 {
@@ -347,10 +354,13 @@ class  IgnoreQueue : public ZeroQueue { };
 
 #ifdef OPENCL_CODE
 template<class Q>
-__kernel void initQueue(Q* q)
+__kernel void initQueue(__global Q* q)
 {
   q->init();
 }
+
+//template __attribute__((mangled_name(init_queue1))) 
+//__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
 #endif
 
 template<unsigned int Size>

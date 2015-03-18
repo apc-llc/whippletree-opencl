@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
 	cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
 	clErrchk(status);
-	kernels=(cl_kernel*)malloc(sizeof(cl_kernel));
+	kernels=(cl_kernel*)malloc(2*sizeof(cl_kernel));
 	
     //Creating command queue
     

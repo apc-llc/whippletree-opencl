@@ -100,7 +100,7 @@ void runTest()
   std::cout<<"init completed\n";
   
   //technique.insertIntoQueue<InitProc>(10);
-  //std::cout<<"insert completed\n";
+  std::cout<<"insert completed\n";
   
 	cl_event event;	
 	double time = 0;

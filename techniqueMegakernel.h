@@ -308,6 +308,7 @@ namespace Megakernel
         }
       }
       return false;
+      
     }
     #endif
   };
@@ -473,7 +474,8 @@ namespace Megakernel
 template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
 __kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
   {  
-    if(q == 0)
+  	q->init();
+    //if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
         return;
@@ -688,7 +690,7 @@ namespace Megakernel {
 
 		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         technique.blocks[Phase] = host_globalvars.maxConcurrentBlocks;
-        std::cout << "blocks: " << technique.blocks << std::endl;
+        std::cout << "blocks: " << technique.blocks[Phase] << std::endl;
         if(technique.blocks[Phase]  == 0)
           printf("ERROR: in Megakernel confguration: dummy launch failed. Check shared memory consumption\n");
         return false;
@@ -724,8 +726,9 @@ namespace Megakernel {
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
       CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
       
-      //SegmentedStorage::checkReinitStorage();
+      SegmentedStorage::checkReinitStorage();
       //initQueue<Q> <<<512, 512>>>(q.get());
+      
       CL_CHECKED_CALL(clFlush(cmdQueue));
 
 
@@ -816,8 +819,8 @@ namespace Megakernel {
       int phase;
       int blocks, blockSize, sharedMemSum;
       cl_uint4 sharedMem;
-      //Q* q;
-      cl_mem q;
+      Q* q;
+      //cl_mem q;
       //cl_command_queue cmdQueue;
       int* shutdown;
       //LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, cl_command_queue cmdQueue, int* shutdown) :
@@ -887,10 +890,10 @@ namespace Megakernel {
       int blocks, blockSize, sharedMemSum;
       cl_uint4 sharedMem;
       int timeLimit;
-      //Q* q;
-      cl_mem q;
+      Q* q;
+      //cl_mem q;
       int* shutdown;
-      LaunchVisitor(cl_mem/*Q**/ q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, int timeLimit, int* shutdown) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, int timeLimit, int* shutdown) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
