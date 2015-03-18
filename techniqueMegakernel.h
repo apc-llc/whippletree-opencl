@@ -85,7 +85,7 @@ namespace Megakernel
 //  extern  volatile int endCounter;
 
   template<class InitProc, class Q>
-  __kernel void initData(Q* q, int num)
+  __kernel void initData(__global Q* q, int num)
   {
     int id = get_global_id(0);
     for( ; id < num; id += get_global_size(0))
@@ -95,12 +95,12 @@ namespace Megakernel
   }
 
   template<class Q>
-  __kernel void recordData(Q* q)
+  __kernel void recordData(__global Q* q)
   {
     q->record();
   }
   template<class Q>
-  __kernel void resetData(Q* q)
+  __kernel void resetData(__global Q* q)
   {
     q->reset();
   }
@@ -116,7 +116,7 @@ namespace Megakernel
   public:
      #ifdef OPENCL_CODE
      __inline__
-    static void call(Q* queue, void* data, int hasData, uint* shared)
+    static void call(__global Q* queue, __global void* data, int hasData, __global uint* shared)
     {
       int nThreads;
       if(PROC::NumThreads != 0)
@@ -135,7 +135,7 @@ namespace Megakernel
   public:
 	#ifdef OPENCL_CODE
      __inline__
-    static void call(Q* queue, void* data, int hasData, uint* shared)
+    static void call(__global Q* queue, void* data, int hasData, uint* shared)
     {
       
       if(PROC::NumThreads != 0)
@@ -162,7 +162,7 @@ namespace Megakernel
   public:
   	#ifdef OPENCL_CODE
      __inline__
-    static void call(Q* queue, void* data, int numData, uint* shared)
+    static void call(__global Q* queue, void* data, int numData, uint* shared)
     {
       if(get_local_id(0) < numData)
         PROC :: template execute<Q, Context<PROC::NumThreads, MultiElement, CUSTOM> >(get_local_id(0), numData, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
@@ -181,14 +181,14 @@ namespace Megakernel
     const uint4 & sharedMem;
 	#else
     const cl_uint4 & sharedMem;
-	#endif
 	
-    Q* q;
-    void* execData;
+    cl_mem /*Q**/ q;
+    #endif
+	void* execData;
     uint* s_data;
 	 int hasResult;
 	#ifdef OPENCL_CODE
-    __inline__  ProcCallCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data) { }
+    __inline__  ProcCallCopyVisitor(__global Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data) { }
     template<class TProcedure, class CUSTOM>
      __inline__ bool visit()
     {
@@ -210,13 +210,14 @@ namespace Megakernel
     const uint4 & sharedMem;
     #else
     const cl_uint4 & sharedMem;
+    cl_mem /*Q**/ q;
     #endif
-    Q* q;
+    
     void* execData;
     uint* s_data;
     int hasResult;
 	#ifdef OPENCL_CODE
-    __inline__  ProcCallNoCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }
+    __inline__  ProcCallNoCopyVisitor(__global Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }
     template<class TProcedure, class CUSTOM>
      __inline__ bool visit()
     {
@@ -243,7 +244,7 @@ namespace Megakernel
     void* execData; \
     uint* s_data; \
     int hasResult; \
-    __inline__  ProcCallNoCopyVisitorPart ## LAUNCHNUM  (Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }  \
+    __inline__  ProcCallNoCopyVisitorPart ## LAUNCHNUM  (__global Q* q, int *execproc, __global void * execData, __global uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }  \
     template<class TProcedure, class CUSTOM>  \
      __inline__ bool visit()  \
     {  \
@@ -277,7 +278,7 @@ namespace Megakernel
   {
   public:
     #ifdef OPENCL_CODE
-    static __inline__  bool RunMaintainer(Q* q, int* shutdown, __global globalvarsT * globalvars)
+    static __inline__  bool RunMaintainer(__global Q* q, int shutdown, __global globalvarsT * globalvars)
     {
       
       if(get_group_id(0) == 1)
@@ -297,11 +298,8 @@ namespace Megakernel
             {
               if(StopCriteria == EmptyQueue)
                 run = false;
-              else if (shutdown)
-              {
-                if(*shutdown)
+                else if(shutdown)
                   run = false;
-             }
             }
             barrier(CLK_LOCAL_MEM_FENCE);
           }
@@ -318,7 +316,7 @@ namespace Megakernel
   {
   public:
 	#ifdef OPENCL_CODE
-    static __inline__  bool RunMaintainer(Q* q, int* shutdown, __global globalvarsT * globalvars)
+    static __inline__  bool RunMaintainer(__global Q* q, int shutdown, __global globalvarsT * globalvars)
     {
       return false;
     }
@@ -333,7 +331,7 @@ namespace Megakernel
   {
   public:
 	#ifdef OPENCL_CODE
-    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
+    static   __inline__ int  run(__global Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -358,7 +356,7 @@ namespace Megakernel
   {
   public:
   #ifdef OPENCL_CODE
-    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
+    static   __inline__ int  run(__global Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -383,7 +381,7 @@ namespace Megakernel
   {
   public:
 	#ifdef OPENCL_CODE
-    static   __inline__ int  run(Q* q, uint4 sharedMemDist)
+    static   __inline__ int  run(__global Q* q, uint4 sharedMemDist)
     {
       extern __local uint s_data[];
       void* execData = reinterpret_cast<void*>(s_data + sharedMemDist.x + sharedMemDist.w);
@@ -472,9 +470,9 @@ namespace Megakernel
 }
 
 #ifdef OPENCL_CODE
- template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
-  __kernel void megakernel(Q* q)//, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
-  {  /*
+template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
+__kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
+  {  
     if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
@@ -571,8 +569,7 @@ namespace Megakernel
                 runState = 0;
               else if (shutdown)
               {
-                if(*shutdown)
-                  runState = 0;
+                 runState = 0;
               }
             }
           }
@@ -582,12 +579,12 @@ namespace Megakernel
       barrier(CLK_LOCAL_MEM_FENCE);
       q->workerMaintain();
     }
-    q->workerEnd();*/
-  }
+    q->workerEnd();
+}
 
 
 template __attribute__((mangled_name(megakernel1))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (MyQueue<TestProcInfo> * q);//, uint4 sharedMemDist, int t, int* shutdown, volatile __global Megakernel::globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
 #endif
 
@@ -606,7 +603,8 @@ namespace Megakernel {
   protected:    
     
     //std::unique_ptr<cl_mem, cl_deleter> q;
-    cl_mem q;
+    //MyQueue<TestProcInfo> q;
+	cl_mem q;
 
     int blockSize[PROCINFO::NumPhases];
     int blocks[PROCINFO::NumPhases];
@@ -665,11 +663,14 @@ namespace Megakernel {
         
 		//Setting kernel arguments
 	    //Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars
-	    //CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 2, sizeof(int), NULL));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 3, sizeof(int), 0));
-    	//CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &dev_globalvars));
+	    cl_mem q;
+	    q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, &status);
+	    CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
+    	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
+    	int null_arg=0;
+    	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 2, sizeof(int), &null_arg));
+    	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 3, sizeof(int), &null_arg));
+    	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 4, sizeof(cl_mem), &dev_globalvars));
     	
 
 		//Setting worksizes
@@ -680,12 +681,12 @@ namespace Megakernel {
 
 
 		//Executing kernel
-	    //CL_CHECKED_CALL(clEnqueueNDRangeKernel(cmdQueue, kernels[0], 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL));        
+	    CL_CHECKED_CALL(clEnqueueNDRangeKernel(cmdQueue, kernels[0], 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL));        
 		//1megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
 
-		//CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, dev_globalvars , CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
         technique.blocks[Phase] = host_globalvars.maxConcurrentBlocks;
         std::cout << "blocks: " << technique.blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
@@ -711,7 +712,7 @@ namespace Megakernel {
     void init()
     {
 		cl_int status;
-    	q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);//std::unique_ptr<cl_mem, cl_deleter>(clAlloc<Q>());
+    	q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, &status);//std::unique_ptr<cl_mem, cl_deleter>(clAlloc<Q>());
 		CL_CHECKED_CALL(status);
 		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);
@@ -721,11 +722,11 @@ namespace Megakernel {
       host_globalvars.endCounter=magic;
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
       //CL_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
-      //CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
+      CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
       
       //SegmentedStorage::checkReinitStorage();
       //initQueue<Q> <<<512, 512>>>(q.get());
-      //CL_CHECKED_CALL(clFlush(cmdQueue));
+      CL_CHECKED_CALL(clFlush(cmdQueue));
 
 
       InitPhaseVisitor v(*this);
@@ -815,8 +816,9 @@ namespace Megakernel {
       int phase;
       int blocks, blockSize, sharedMemSum;
       cl_uint4 sharedMem;
-      Q* q;
-      cl_command_queue cmdQueue;
+      //Q* q;
+      cl_mem q;
+      //cl_command_queue cmdQueue;
       int* shutdown;
       //LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, cl_command_queue cmdQueue, int* shutdown) :
         //phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), cmdQueue(cmdQueue), shutdown(shutdown) { }
@@ -885,9 +887,10 @@ namespace Megakernel {
       int blocks, blockSize, sharedMemSum;
       cl_uint4 sharedMem;
       int timeLimit;
-      Q* q;
+      //Q* q;
+      cl_mem q;
       int* shutdown;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, int timeLimit, int* shutdown) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
+      LaunchVisitor(cl_mem/*Q**/ q, int phase, int blocks, int blockSize, int sharedMemSum, cl_uint4 sharedMem, int timeLimit, int* shutdown) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()

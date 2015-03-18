@@ -99,8 +99,8 @@ void runTest()
   technique.init();
   std::cout<<"init completed\n";
   
-  technique.insertIntoQueue<InitProc>(10);
-  std::cout<<"insert completed\n";
+  //technique.insertIntoQueue<InitProc>(10);
+  //std::cout<<"insert completed\n";
   
 	cl_event event;	
 	double time = 0;
@@ -110,7 +110,7 @@ void runTest()
 	//clErrchk(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL));
 		
 
-	technique.execute(0, cmdQueue);
+	//technique.execute(0, cmdQueue);
 	std::cout<<"execution completed\n";
 	
 
