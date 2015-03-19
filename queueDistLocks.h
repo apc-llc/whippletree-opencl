@@ -77,7 +77,7 @@
         if(TWithFence)
           sortingFence = QueueSize, hitSortingFence = 0, sortingMinBorder = 32, lastSortEnd = 0;
       }
-      for(uint i = lid; i < QueueSize; i+=get_local_size(0)*gridDim.x)
+      for(uint i = lid; i < QueueSize; i+=get_global_size(0))
         locks[i] = 0;
     }
 

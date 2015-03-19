@@ -352,16 +352,7 @@ typedef Queue<false> ZeroQueue;
 template<class ProcInfo>
 class  IgnoreQueue : public ZeroQueue { };
 
-#ifdef OPENCL_CODE
-template<class Q>
-__kernel void initQueue(__global Q* q)
-{
-  q->init();
-}
 
-//template __attribute__((mangled_name(init_queue1))) 
-//__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
-#endif
 
 template<unsigned int Size>
 class Min16

@@ -250,7 +250,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
   {
 	#ifdef OPENCL_CODE
     template<class TQAttachment>
-    __inline__ /*__device__*/ bool visit(TQAttachment& q)
+    __inline__ /*__device__*/ bool visit(__global TQAttachment& q)
     {
       q.init();
       return false;

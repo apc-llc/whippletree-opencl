@@ -474,7 +474,6 @@ namespace Megakernel
 template<class Q, class PROCINFO, class CUSTOM, class CopyToShared, class MultiElement, bool Maintainer, class TimeLimiter, Megakernel::MegakernelStopCriteria StopCriteria>
 __kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown,volatile __global Megakernel::globalvarsT * globalvars)  
   {  
-  	q->init();
     //if(q == 0)
     {
       if(globalvars->maxConcurrentBlockEvalDone != 0)
@@ -588,6 +587,18 @@ __kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown
 template __attribute__((mangled_name(megakernel1))) 
 __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
+
+
+template<class Q>
+__kernel void initQueue(__global Q* q)
+{
+  q->init();
+}
+
+template __attribute__((mangled_name(init_queue1))) 
+__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
+
+
 #endif
 
 namespace Megakernel {
@@ -679,7 +690,7 @@ namespace Megakernel {
 		size_t localWorkSize[1];
 		localWorkSize[0]=BLOCK_SIZE;
 	    size_t globalWorkSize[1];
-	    globalWorkSize[0] = 512;
+	    globalWorkSize[0] = 512*technique.blockSize[Phase];
 
 
 		//Executing kernel
@@ -727,8 +738,14 @@ namespace Megakernel {
       CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
       
       SegmentedStorage::checkReinitStorage();
+		CL_CHECKED_CALL(clSetKernelArg(kernels[1], 0, sizeof(cl_mem), &q));
+      	size_t localWorkSize[1];
+		localWorkSize[0]=BLOCK_SIZE;
+	    size_t globalWorkSize[1];
+	    globalWorkSize[0] = 512*512;		
+		CL_CHECKED_CALL(clEnqueueNDRangeKernel(cmdQueue, kernels[1], 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL));    
       //initQueue<Q> <<<512, 512>>>(q.get());
-      
+
       CL_CHECKED_CALL(clFlush(cmdQueue));
 
 
