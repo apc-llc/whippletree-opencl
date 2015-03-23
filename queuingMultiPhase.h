@@ -126,7 +126,7 @@ struct PhaseProcInfo<Priority, PhaseTraits, ProcInfoEnd, Phase, false> : public 
 
 
 // Iterator to construct queues for all phases
-template<template<class /*ProcedureInfo*/> class InternalQueue, class ProcedureInfo, int Phase, int NumPhases>
+template<template<class ProcedureInfo> class InternalQueue, class ProcedureInfo, int Phase, int NumPhases>
 struct PhaseQueues
 {
 

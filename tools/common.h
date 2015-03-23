@@ -80,7 +80,7 @@ namespace Tools
   {
   public:
     typedef unsigned int type;
-#if defined(__CUDACC__)
+#if defined(OPENCL_CODE)
     static /*__device__*/ inline uint isshared(uint p)
     {
       uint res;
@@ -132,7 +132,7 @@ namespace Tools
   {
   public:
     typedef unsigned long int type;
-#if defined(__CUDACC__)
+#if defined(OPENCL_CODE)
     static /*__device__*/ inline uint isshared(unsigned long int p)
     {
       uint res;
@@ -181,13 +181,16 @@ namespace Tools
   };
   typedef Tools::__PointerEquivalent<sizeof(char*)>::type PointerEquivalent;
 
- #if defined(__CUDACC__)
+ 
+ #ifdef OPENCL_CODE
   /*__device__*/ inline uint laneid()
   {
     uint mylaneid;
-    asm("mov.u32 %0, %laneid;" : "=r" (mylaneid));
+    //asm("mov.u32 %0, %laneid;" : "=r" (mylaneid));
     return mylaneid;
   }
+  #endif
+ #if defined(OPENCL_CODE)
   //requires ptx isa 1.3
   /*__device__*/ inline uint warpid()
   {
@@ -268,7 +271,7 @@ namespace Tools
   }
   /*__device__*/ inline void trap()
   {
-    asm("trap;");
+    //asm("trap;");
   }
   //custom sync
   /*__device__*/ inline void syncthreads(uint lock = 0, int num = -1)
@@ -325,10 +328,10 @@ namespace Tools
     }
     return res;
   }
-  /*__device__*/ inline clock_t __clock()
+  /*__device__*/ inline uint/*clock_t*/ __clock()
   {
-    volatile __shared__ clock_t hack;
-    clock_t c;
+    /*volatile __shared__*/ uint /*clock_t*/ hack;
+    /*clock_t*/ uint c;
 #ifndef __GNUC__
     asm volatile ("mov.u32 %0, %%clock;" : "=r" (c));
 #else

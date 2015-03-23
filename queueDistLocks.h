@@ -37,6 +37,8 @@
 #include "segmentedStorage.h"
 //#include "tools/bitonicSort.cuh"
 
+#include "tools/cl_vector_types_constructors.h"
+
   template<uint TQueueSize, bool TWarpOptimization = true, bool TAssertOnOverflow = true, bool TWithFence = false>
   class QueueDistLocksStub
   {
@@ -87,17 +89,17 @@
       if(TWarpOptimization)
       {
         //combine
-        uint mask = __ballot(1);
-        uint ourcount = __popc(mask)/TthreadsPerElement;
-        int mypos = __popc(Tools::lanemask_lt() & mask);
+        uint mask = 0;//__ballot(1);
+        uint ourcount = 0;//__popc(mask)/TthreadsPerElement;
+        int mypos = 0;//__popc(Tools::lanemask_lt() & mask);
 
         int wpos = -1;
 
         if(mypos == 0)
         {
-          int c = atomicAdd(const_cast<int*>(&count), ourcount);
+          int c = 0;//atomicAdd(const_cast<int*>(&count), ourcount);
           if(c + static_cast<int>(ourcount) < static_cast<int>(QueueSize))
-            wpos = atomicAdd(&back, ourcount);
+            wpos = 0;//atomicAdd(&back, ourcount);
           else
           {
             if(TAssertOnOverflow)
@@ -106,12 +108,12 @@
               //printf("ERROR queue out of elements %d+%d .. %d >%d\n", wpos, ourcount, wpos + ourcount - *static_cast<volatile uint*>(&front), QueueSize);
               Tools::trap();
             }
-            atomicSub(const_cast<int*>(&count), ourcount);
+            //atomicSub(const_cast<int*>(&count), ourcount);
           }
         }
 
         //get source
-        int src = __ffs(mask)-1;
+        int src = 0;//__ffs(mask)-1;
         //wpos = __shfl(wpos, src);
         wpos = warpBroadcast<32>(wpos, src);
 
@@ -119,19 +121,19 @@
           return make_int2(-1,0);
         uint pos = (wpos + mypos/TthreadsPerElement)%QueueSize;
         while(locks[pos] != 0)
-          __threadfence();
+          write_mem_fence(CLK_GLOBAL_MEM_FENCE);
         return make_int2(pos, ourcount);
       }
       else
       {
         if(TthreadsPerElement == 1)
         {
-          int c = atomicAdd(const_cast<int*>(&count), 1);
+          int c = 0;//atomicAdd(const_cast<int*>(&count), 1);
           if(c + 1 < static_cast<int>(QueueSize) )
           {
-            uint pos = atomicAdd(&back, 1) % QueueSize;;
+            uint pos = 0;//atomicAdd(&back, 1) % QueueSize;;
             while(locks[pos] != 0)
-              __threadfence();
+              write_mem_fence(CLK_GLOBAL_MEM_FENCE);
             return make_int2(pos, 1);
           }
           else
@@ -142,7 +144,7 @@
               //printf("ERROR queue out of elements %d+%d .. %d >%d\n", wpos, ourcount, wpos + ourcount - *static_cast<volatile uint*>(&front), QueueSize);
               Tools::trap();
             }
-            atomicSub(const_cast<int*>(&count), 1);
+            //atomicSub(const_cast<int*>(&count), 1);
             return make_int2(-1,0);
           }
         }
@@ -151,12 +153,12 @@
           int pos;
           if(Tools::laneid() % TthreadsPerElement == 0)
           {
-            int c = atomicAdd(const_cast<int*>(&count), 1);
+            int c = 0;//atomicAdd(const_cast<int*>(&count), 1);
             if(c + 1 < static_cast<int>(QueueSize) )
             {
-              pos = atomicAdd(&back, 1) % QueueSize;
+              pos = 0;//atomicAdd(&back, 1) % QueueSize;
               while(locks[pos] != 0)
-                __threadfence();
+                write_mem_fence(CLK_GLOBAL_MEM_FENCE);
             }
             else
             {
@@ -166,7 +168,7 @@
                 //printf("ERROR queue out of elements %d+%d .. %d >%d\n", wpos, ourcount, wpos + ourcount - *static_cast<volatile uint*>(&front), QueueSize);
                 Tools::trap();
               }
-              atomicSub(const_cast<int*>(&count), 1);
+              //atomicSub(const_cast<int*>(&count), 1);
               pos = -1;
             }
           }
@@ -195,15 +197,15 @@
       __shared__ uint2 offset_take;
       if(get_local_id(0) == 0)
       {
-        int c = atomicSub(const_cast<int*>(&count), num);
+        int c = 0;//atomicSub(const_cast<int*>(&count), num);
         if(c < num)
         {
-          atomicAdd(const_cast<int*>(&count), min(num,num - c));
+          //atomicAdd(const_cast<int*>(&count), min(num,num - c));
           num = max(c, 0);
         }
         offset_take.y = num;
         if(num > 0)
-          offset_take.x = atomicAdd(&front, num);
+          offset_take.x = 0;//atomicAdd(&front, num);
         //else
         //  offset_take.x = 0;
       }
@@ -212,7 +214,7 @@
       {
         uint p = (offset_take.x + get_local_id(0))%QueueSize;
         while(locks[p] != 1)
-          __threadfence();
+          write_mem_fence(CLK_GLOBAL_MEM_FENCE);
 
         if(TWithFence)
         {
@@ -223,7 +225,7 @@
             if(currentfence < back &&  back < p ) break;
             //ouch, we are blocked due to sorting!
             hitSortingFence = true;
-            __threadfence();
+            write_mem_fence(CLK_GLOBAL_MEM_FENCE);
           }
         }
       }
@@ -236,7 +238,7 @@
       if(get_local_id(0) < offset_take.y)
       {
         locks[(offset_take.x + get_local_id(0))%QueueSize] = 0;
-        //__threadfence();
+        //write_mem_fence(CLK_GLOBAL_MEM_FENCE);
       }
     }
 
@@ -245,17 +247,17 @@
       __shared__ int num;
       if(get_local_id(0) == 0)
       {
-        int c = atomicSub(const_cast<int*>(&count), maxnum);
+        int c = 0;//atomicSub(const_cast<int*>(&count), maxnum);
         if(c < maxnum)
         {
           if(only_read_all)
           {
-            atomicAdd(const_cast<int*>(&count), maxnum);
+            //atomicAdd(const_cast<int*>(&count), maxnum);
             num = 0;
           }
           else
           {
-            atomicAdd(const_cast<int*>(&count), min(maxnum,maxnum - c));
+            //atomicAdd(const_cast<int*>(&count), min(maxnum,maxnum - c));
             num = max(c, 0);
           }
         }
@@ -271,13 +273,13 @@
       if(num <= 0)
         return 0;
       if(get_local_id(0) == 0)
-         offset = atomicAdd(&front, num);
+         offset = 0;//atomicAdd(&front, num);
       __syncthreads();
       if(get_local_id(0) < num)
       {
         int pos = (offset + get_local_id(0))%QueueSize;
         while(locks[pos] != 1)
-          __threadfence();
+          write_mem_fence(CLK_GLOBAL_MEM_FENCE);
        
         if(TWithFence)
         {
@@ -288,7 +290,7 @@
             if(currentfence < back &&  back < pos ) break;
             //ouch, we are blocked due to sorting!
             hitSortingFence = true;
-            __threadfence();
+            write_mem_fence(CLK_GLOBAL_MEM_FENCE);
           }
         }
       }
@@ -515,7 +517,7 @@
       {
         uint elementId = (sortStart + i) % Stub::QueueSize;
         while(Stub::locks[elementId] == 0)
-          __threadfence();
+          write_mem_fence(CLK_GLOBAL_MEM_FENCE);
        
         int addInfo;
         void * data = Storage::readDataPointers(&addInfo, elementId);
@@ -524,7 +526,7 @@
         s_data[i + 2*threads] = SortInfo::eval(addInfo, data);
       }
 
-      __threadfence();
+      write_mem_fence(CLK_GLOBAL_MEM_FENCE);
       Tools::syncthreads(1, threads);
 
       ////debug
@@ -536,7 +538,7 @@
       {
         Stub::hitSortingFence = false;
         Stub::sortingFence = sortStart % Stub::QueueSize;
-        __threadfence();
+        write_mem_fence(CLK_GLOBAL_MEM_FENCE);
         int nFront = *((volatile uint*)(&Stub::front));
         if(nFront < cFront) nFront += Stub::QueueSize;
 
@@ -607,7 +609,7 @@
       //}
 
 
-      __threadfence();
+      write_mem_fence(CLK_GLOBAL_MEM_FENCE);
       Tools::syncthreads(1, threads);
 
       ////debug

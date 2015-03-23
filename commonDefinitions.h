@@ -12,24 +12,7 @@
 //#include "examples/queuing/proc2.h"
 
 
-//somehow we need to get something into the queue
-//the init proc does that for us
-class InitProc
-{
-public:
-  template<class Q>
-  __inline__ //__device__
-  static void init(Q* q, int id)
-  {
-    //so lets put something into the queues
-    cl_int4 d;
-	d.s[0] = id+1;
-	d.s[0] = 0;
-	d.s[0] = 1;
-	d.s[0] = 2;
-    q-> template enqueueInitial<Proc0>(d);
-  }
-};
+
 
 
 typedef ProcInfo<Proc0,N<Proc1,N<Proc2> > >TestProcInfo;
@@ -50,3 +33,25 @@ typedef Megakernel::DynamicPointed16336<MyQueue, TestProcInfo> MyTechnique;
 //typedef KernelLaunches::TechniqueMultiple<MyQueue, TestProcInfo> MyTechnique;
 
 //typedef DynamicParallelism::TechniqueQueuedNoCopy<MyQueue, InitProc, TestProcInfo> MyTechnique;
+
+
+//somehow we need to get something into the queue
+//the init proc does that for us
+class InitProc
+{
+public:
+	#ifdef OPENCL_CODE
+  template<class Q>
+  __inline__ //__device__
+  static void init(__global Q* q, int id)
+  {
+    //so lets put something into the queues
+    int4 d;
+	d.x = id+1;
+	d.y = 0;
+	d.z = 1;
+	d.w = 2;
+    q-> template enqueueInitial<Proc0>(d);
+  }
+  #endif
+};

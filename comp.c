@@ -66,9 +66,11 @@ void compile_device_code() {
     std::cout << "Program built \n"<< std::endl;
     
 	kernels[0] = clCreateKernel(program, "megakernel1", &status);
-	clErrchk(status);
+	//clErrchk(status);
 	kernels[1] = clCreateKernel(program, "init_queue1", &status);
-	clErrchk(status);
+	//clErrchk(status);
+	kernels[2] = clCreateKernel(program, "init_data1", &status);
+	//clErrchk(status);
 	
 	char *build_log;
 	size_t ret_val_size;

@@ -37,6 +37,7 @@
 #ifdef OPENCL_CODE
 #include "../../commonDefinitions.h"
 #endif
+//#include "commonDefinitions.h"
 #include "techniqueMegakernelVars.h"
 #ifndef OPENCL_CODE
 #include <memory>
@@ -84,15 +85,8 @@ namespace Megakernel
 //  extern  volatile int doneCounter;
 //  extern  volatile int endCounter;
 
-  template<class InitProc, class Q>
-  __kernel void initData(__global Q* q, int num)
-  {
-    int id = get_global_id(0);
-    for( ; id < num; id += get_global_size(0))
-    {
-      InitProc::template init<Q>(q, id);
-    }
-  }
+
+
 
   template<class Q>
   __kernel void recordData(__global Q* q)
@@ -598,6 +592,20 @@ __kernel void initQueue(__global Q* q)
 template __attribute__((mangled_name(init_queue1))) 
 __kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
 
+  template<class InitProc, class Q>
+  __kernel void initData(__global Q* q, int num)
+  {
+    int id = get_global_id(0);
+    for( ; id < num; id += get_global_size(0))
+    {
+      InitProc::template init<Q>(q, id);
+      //MyQueue<TestProcInfo> a;
+    }
+  }
+
+template __attribute__((mangled_name(init_data1))) 
+__kernel void initData <InitProc, MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q, int num);
+
 
 #endif
 
@@ -677,7 +685,7 @@ namespace Megakernel {
 		//Setting kernel arguments
 	    //Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars
 	    cl_mem q;
-	    q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, &status);
+	    q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);
 	    CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
     	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
     	int null_arg=0;
@@ -725,7 +733,7 @@ namespace Megakernel {
     void init()
     {
 		cl_int status;
-    	q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, &status);//std::unique_ptr<cl_mem, cl_deleter>(clAlloc<Q>());
+    	q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);//std::unique_ptr<cl_mem, cl_deleter>(clAlloc<Q>());
 		CL_CHECKED_CALL(status);
 		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);

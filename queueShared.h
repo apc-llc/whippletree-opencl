@@ -683,7 +683,7 @@ class SharedStaticQueueTyping
 };
   
 
-template<class ProcedureInfo, template<class /*ProcedureInfo*/> class ExternalQueue, template<class /*ProcedureInfo*/> class SharedQueue, int SharedQueueFillupThreshold = 80, int GotoGlobalChance = 0>
+template<class ProcedureInfo, template<class ProcedureInfo> class ExternalQueue, template<class ProcedureInfo> class SharedQueue, int SharedQueueFillupThreshold = 80, int GotoGlobalChance = 0>
 class  SharedCombinerQueue : protected ExternalQueue<ProcedureInfo>
 {
   typedef ExternalQueue<ProcedureInfo> ExtQ;

@@ -37,12 +37,16 @@
 #endif 
 
 #include "random.h"
+#include "tools/cl_vector_types_constructors.h"
+
 
 #if (defined(_MSC_VER) && defined(_WIN64)) || defined(__LP64__)
 #define __RET_PTR   "l"
 #else
 #define __RET_PTR   "r"
 #endif
+
+
 
 template<class TAdditionalData>
 struct AdditionalDataInfo
@@ -70,13 +74,13 @@ template<int Mod, int MaxWarps>
 /*__device__*/ __inline__ int warpBroadcast(int val, int who)
 {
 //#if __CUDA_ARCH__ < 300
-  __local volatile int comm[MaxWarps];
+  //__local volatile int comm[MaxWarps];
   for(int offset = 0; offset < 32; offset += Mod)
   {
-    if(Tools::laneid() - offset == who)
-      comm[get_local_id(0)/32] = val;
-    if(Tools::laneid() < offset + Mod)
-      return comm[get_local_id(0)/32];
+    //if(Tools::laneid() - offset == who)
+    //  comm[get_local_id(0)/32] = val;
+    //if(Tools::laneid() < offset + Mod)
+    //  return comm[get_local_id(0)/32];
   }
   return val;
 //#else
@@ -921,8 +925,8 @@ public:
       pos = QueueStub::template enqueuePrep<1>(pos);
       if(pos.x >= 0)
       {
-        writeData(data, make_cl_uint2(pos.x, addinfo));
-        __threadfence();
+        writeData(data, make_uint2(pos.x, addinfo));
+        write_mem_fence(CLK_GLOBAL_MEM_FENCE);
         QueueStub:: template enqueueEnd<1>(pos);
       }
     } while(pos.x == -2);
