@@ -69,7 +69,7 @@ void compile_device_code() {
 	//clErrchk(status);
 	kernels[1] = clCreateKernel(program, "init_queue1", &status);
 	//clErrchk(status);
-	kernels[2] = clCreateKernel(program, "init_data1", &status);
+	//kernels[2] = clCreateKernel(program, "init_data1", &status);
 	//clErrchk(status);
 	
 	char *build_log;
