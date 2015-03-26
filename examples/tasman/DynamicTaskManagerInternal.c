@@ -1,16 +1,25 @@
+#ifndef OPENCL_CODE
 #include <tools/utils.h>
+#endif
 
 #include "queueDistLocks.h"
 #include "queueShared.h"
 #include "queuingPerProc.h"
+
+#ifndef OPENCL_CODE
 #include "techniqueMegakernel.h"
+#endif
 //#include "techniqueKernels.h"
 
 #include "procedureInterface.h"
 #include "procinfoTemplate.h"
 
-#include "DynamicTaskManager.h"
+#ifndef DYNAMICTASKMANAGER_H
 
+#include "DynamicTaskManager.h"
+#endif
+
+#ifndef OPENCL_CODE
 extern cl_context context;
 extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
@@ -26,15 +35,22 @@ namespace tasman
 	/*__device__*/ cl_mem submission;
 	/*__device__*/ cl_mem finish;
 }
+#endif
 
 namespace
 {
 	class Task : public ::Procedure
 	{
 	public:
+		#ifndef OPENCL_CODE
 		static const int NumThreads = 32;
 		static const bool ItemInput = false; // false results in a lvl 1 task
 		static const int sharedMemory = 0; // shared memory requirements 
+		#else
+		const int NumThreads = 32;
+		const bool ItemInput = false; // false results in a lvl 1 task
+		const int sharedMemory = 0; // shared memory requirements 
+		#endif
 
 		typedef DynamicTaskInfo ExpectedData;
 	
@@ -64,7 +80,11 @@ namespace
 	class MyQueue : public TQueue::Type<ProcInfo>
 	{
 	public :
-		static const int globalMaintainMinThreads = 1;
+		#ifdef OPENCL_CODE
+		const int globalMaintainMinThreads = 1;		
+		#else
+		static const int globalMaintainMinThreads = 1;		
+		#endif
 		#ifdef OPENCL_CODE
 		__inline__ /*__device__*/ void globalMaintain()
 		{
@@ -80,7 +100,9 @@ namespace
 		#endif
 	};
 
+	#ifndef OPENCL_CODE
 	typedef Megakernel::SimplePointed16336<MyQueue, ProcInfo<Task>, void, Megakernel::ShutdownIndicator> MyTechnique;
+
 
 	class DynamicTaskManagerInternal : private NonCopyable<DynamicTaskManagerInternal>
 	{
@@ -117,13 +139,16 @@ namespace
 		technique.init();
 		technique.execute(0, stream, address);
 	}
+	#endif
 }
 
 namespace tasman
 {
+	#ifndef OPENCL_CODE
 	extern "C" void dynamicTaskManagerStart(cl_command_queue stream)
 	{
 		DynamicTaskManagerInternal::get().start(stream);
 	}
+	#endif
 }
 

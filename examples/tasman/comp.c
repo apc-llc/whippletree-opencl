@@ -60,7 +60,7 @@ void compile_device_code() {
 	clErrchk(status);
 	
 	char options[1024*1024];
-	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/tasman/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS");
+	sprintf(options, "-w -x clc++ -I /home/alex/whippletree-opencl/ -I /home/alex/whippletree-opencl/examples/tasman/ -DOPENCL_CODE -DCL_HAS_NAMED_VECTOR_FIELDS -DBLOCK_SIZE=16");
     (clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     std::cout << "Program built \n"<< std::endl;
     

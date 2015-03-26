@@ -1,3 +1,7 @@
+#ifndef OPENCL_CODE
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#include <CL/cl.h>
+
 #include <cstdlib>
 #include <stdio.h>
 //#include <cublas_v2.h>
@@ -5,11 +9,14 @@
 #include <memory>
 #include <time.h>
 #include <tools/utils.h>
+#endif
 
 #include "queueDistLocks.h"
 #include "queueShared.h"
 #include "queuingPerProc.h"
+#ifndef OPENCL_CODE
 #include "techniqueMegakernel.h"
+#endif
 //#include "techniqueKernels.h"
 //#include "techniqueDynamicParallelism.h"
 #include "segmentedStorage.h"
@@ -18,12 +25,15 @@
 #include "procinfoTemplate.h"
 #include "random.h"
 
+
+
+#ifndef DYNAMICTASKMANAGER_H
+
 #include "DynamicTaskManager.h"
-
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
-#include <CL/cl.h>
+#endif
 
 
+#ifndef OPENCL_CODE
 cl_context context;
 cl_device_id *devices;
 cl_command_queue cmdQueue;
@@ -52,6 +62,7 @@ struct MatmulConfig
 cl_mem config;
 
  __inline__ void whippletree_matmul(int threadId, int numThreads, void* ptaskid, volatile uint* shared); 
+#endif
 
 #ifdef OPNECL_CODE
 
@@ -120,7 +131,8 @@ cl_mem config;
 	}
 #endif
 	// Write the block sub-matrix to global memory
-	// each thread writes one element
+	// each thread writes ones/tasman/matmul.c", line 184: error: 
+          name followed by "::" must be a class or namespe element
 	C [ic] = sum;
 	*/
 }
@@ -129,10 +141,15 @@ cl_mem config;
 class MatmulTask : public ::Procedure
 {
 public:
+	#ifdef OPENCL_CODE
+	const int NumThreads = BLOCK_SIZE * BLOCK_SIZE;
+	const bool ItemInput = false; // false results in a lvl 1	task
+	const int sharedMemory = 2 * sizeof(float) * NumThreads;	// shared memory requirements 
+	#else
 	static const int NumThreads = BLOCK_SIZE * BLOCK_SIZE;
 	static const bool ItemInput = false; // false results in a lvl 1	task
 	static const int sharedMemory = 2 * sizeof(float) * NumThreads;	// shared memory requirements 
-	
+	#endif
 	typedef uint ExpectedData;
 
 	#ifdef OPENCL_CODE
@@ -169,8 +186,9 @@ public :
 
 	//and lets use a Megakernel which can execute multiple workpackages concurrently (dynamic)
 	//and offers a maximum of 16k shared memory
-	typedef Megakernel::SimplePointed16336<MyQueue, ProcInfo<MatmulTask> > MyTechnique;
+#ifndef OPENCL_CODE
 
+	typedef Megakernel::SimplePointed16336<MyQueue, ProcInfo<MatmulTask> > MyTechnique;
 	Matmul(float* Ah, float* Bh, float* Ch, size_t n, MatmulVersion version, float* time = NULL)
 	{
 		MatmulConfig hconfig;
@@ -301,8 +319,10 @@ public :
 		CL_CHECKED_CALL(clReleaseMemObject(B));
 		CL_CHECKED_CALL(clReleaseMemObject(C));
 	}
+#endif
 };
 
+#ifndef OPENCL_CODE
 int main(int argc, char** argv)
 {
 
@@ -394,7 +414,7 @@ int main(int argc, char** argv)
 	cout << "WHIPPLETREE version completed in " << time << " sec" << endl;
 
 	//Matmul(A, B, C4, n, MatmulVersion::TASMAN, &time);
-	cout << "TASMAN      version completed in " << time << " sec" << endl;
+	//cout << "TASMAN      version completed in " << time << " sec" << endl;
 
 	/*
 	// Compare C1 and C4 results.
@@ -420,4 +440,4 @@ int main(int argc, char** argv)
 
 	return status;
 }
-
+#endif

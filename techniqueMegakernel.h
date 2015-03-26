@@ -35,7 +35,7 @@
 #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
 #ifdef OPENCL_CODE
-#include "../../commonDefinitions.h"
+#include "wrapper.cl"
 #endif
 //#include "commonDefinitions.h"
 #include "techniqueMegakernelVars.h"
@@ -580,7 +580,7 @@ __kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown
 
 
 template __attribute__((mangled_name(megakernel1))) 
-__kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<TestProcInfo> * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<ProcInfo>, ProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<ProcInfo> * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
 
 
@@ -591,8 +591,8 @@ __kernel void initQueue(__global Q* q)
   q->init();
 }
 
-template __attribute__((mangled_name(init_queue1))) 
-__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
+//template __attribute__((mangled_name(init_queue1))) 
+//__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
 
 
 
@@ -606,8 +606,8 @@ __kernel void initData(__global Q* q, int num)
     }
   }
 
-template __attribute__((mangled_name(init_data1))) 
-__kernel void initData <InitProc, MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q, int num);
+//template __attribute__((mangled_name(init_data1))) 
+//__kernel void initData <InitProc, MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q, int num);
 
 
 #endif
@@ -689,7 +689,7 @@ namespace Megakernel {
 	    //Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars
 	    cl_mem q;
 	    q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);
-	    CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
+	    CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), 0));
     	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
     	int null_arg=0;
     	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 2, sizeof(int), &null_arg));
@@ -740,7 +740,7 @@ namespace Megakernel {
 		CL_CHECKED_CALL(status);
 		dev_globalvars = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(globalvarsT), NULL, &status);
 		CL_CHECKED_CALL(status);
-		CL_CHECKED_CALL(clFlush(cmdQueue));
+		CL_CHECKED_CALL(clFinish(cmdQueue));
       int magic = 2597, null = 0;
       host_globalvars.doneCounter=null;
       host_globalvars.endCounter=magic;
@@ -756,7 +756,7 @@ namespace Megakernel {
 		CL_CHECKED_CALL(clEnqueueNDRangeKernel(cmdQueue, kernels[1], 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL));    
       //initQueue<Q> <<<512, 512>>>(q.get());
 
-      CL_CHECKED_CALL(clFlush(cmdQueue));
+      CL_CHECKED_CALL(clFinish(cmdQueue));
 
 
       InitPhaseVisitor v(*this);
@@ -781,7 +781,7 @@ namespace Megakernel {
       else
       {
         //recordData<Q><<<1, 1>>>(q.get());
-        //CL_CHECKED_CALL(clFlush());
+        //CL_CHECKED_CALL(clFinish());
       }
     }
 
@@ -806,7 +806,7 @@ namespace Megakernel {
 
       //int b = min((num + 512 - 1)/512,104);
       //initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      //CL_CHECKED_CALL(clFlush());
+      //CL_CHECKED_CALL(clFinish());
     }
 
     int BlockSize(int phase = 0) const

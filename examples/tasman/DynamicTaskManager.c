@@ -1,5 +1,9 @@
-#include "DynamicTaskManager.h"
+#ifndef DYNAMICTASKMANAGER_H
 
+#include "DynamicTaskManager.h"
+#endif
+
+#ifndef OPENCL_CODE
 extern cl_context context;
 extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
@@ -11,9 +15,11 @@ extern cl_platform_id *platforms;
 extern cl_program program;
 
 extern "C" void dynamicTaskManagerStart(cl_command_queue stream);
+#endif
 
 namespace tasman
 {
+	#ifndef OPENCL_CODE
 	DynamicTask::~DynamicTask()
 	{
 		CL_CHECKED_CALL(clReleaseMemObject(info));
@@ -93,11 +99,12 @@ namespace tasman
 		}
 
 		// Copy data to device memory.
-		//CL_CHECKED_CALL(clEnqueueWriteBuffer(stream2, task->info->data, CL_FALSE, 0, sizeof(void*)*ntasks, data, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(stream2, task->info, CL_FALSE, 0, sizeof(DynamicTaskInfo), data, 0, NULL, NULL));
 		
 		// Submit task into queue.
-		//CL_CHECKED_CALL(clEnqueueWriteBuffer(stream2, submission, CL_FALSE, 0, sizeof(DynamicTaskInfo*), &task->info, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(stream2, submission, CL_FALSE, 0, sizeof(DynamicTaskInfo*), &task->info, 0, NULL, NULL));
 		CL_CHECKED_CALL(clFinish(stream2));
 	}
+	#endif
 }
 

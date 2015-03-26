@@ -1,3 +1,7 @@
+#define DYNAMICTASKMANAGER_H
+
+#ifndef OPENCL_CODE
+
 #include <cstdio>
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
@@ -12,6 +16,7 @@ extern int used_cl_device;
 extern cl_uint numPlatforms;
 extern cl_platform_id *platforms;
 extern cl_program program;
+#endif
 
 namespace tasman
 {
@@ -32,6 +37,7 @@ namespace
 
 namespace tasman
 {
+	#ifndef OPENCL_CODE
 	extern /*__device__*/ cl_mem submission;
 	extern /*__device__*/ cl_mem finish;
 
@@ -60,8 +66,9 @@ namespace tasman
 
 			//CUDA_CHECKED_CALL(cudaMalloc(&task->info, sizeof(DynamicTaskInfo)));
 			task->info = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(DynamicTaskInfo), NULL, &status);
-			//CL_CHECKED_CALL(status);
+			CL_CHECKED_CALL(status);
 			// Determine the given task function address on device.
+			
 			//*getfuncaddress<Func><<<1, 1>>>(task->info);
 			
 			//*CUDA_CHECKED_CALL(cudaDeviceSynchronize());
@@ -105,6 +112,7 @@ namespace tasman
 
 		void enqueue(const DynamicTask* task, void* host_data, cl_mem data, int id, int ntasks) const;
 	};
+	#endif
 }
 
 namespace
