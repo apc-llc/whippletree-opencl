@@ -36,6 +36,7 @@ cl_program program;
 cl_mem dev_globalvars;
 Megakernel::globalvarsT host_globalvars;
 
+extern void compile_device_code();
 
 struct dim2 { uint x, y; };
 
@@ -180,17 +181,22 @@ public :
 		cl_int status;
 		
 		
+		config=clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(MatmulConfig), NULL, &status);
+		CL_CHECKED_CALL(status);
 		A=clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * n * n, NULL, &status);
 		CL_CHECKED_CALL(status);
 		B=clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * n * n, NULL, &status);
 		CL_CHECKED_CALL(status);
 		C=clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * n * n, NULL, &status);
 		CL_CHECKED_CALL(status);
+
+
+		cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
 				
-		cl_command_queue cmdQueue2;//!!!!!!!
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, A, CL_TRUE, 0, sizeof(float) * n * n, &Ah, 0, NULL, NULL));
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, B, CL_TRUE, 0, sizeof(float) * n * n, &Bh, 0, NULL, NULL));
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, C, CL_TRUE, 0, sizeof(float) * n * n, &Ch, 0, NULL, NULL));
+	
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, A, CL_TRUE, 0, sizeof(float) * n * n, &Ah, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, B, CL_TRUE, 0, sizeof(float) * n * n, &Bh, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, C, CL_TRUE, 0, sizeof(float) * n * n, &Ch, 0, NULL, NULL));
 		
 		if (version == MatmulVersion::WHIPPLETREE)
 		{
@@ -199,7 +205,7 @@ public :
 			hconfig.gridDim_.x = n / hconfig.blockDim_.x;
 			hconfig.gridDim_.y = n / hconfig.blockDim_.y;
 
-			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, config, CL_TRUE, 0, sizeof(MatmulConfig), &hconfig, 0, NULL, NULL));
+			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, config, CL_TRUE, 0, sizeof(MatmulConfig), &hconfig, 0, NULL, NULL));
 			//*CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 			MyTechnique technique;
@@ -228,7 +234,7 @@ public :
 			hconfig.gridDim_.x = n / hconfig.blockDim_.x;
 			hconfig.gridDim_.y = n / hconfig.blockDim_.y;
 
-			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, config, CL_TRUE, 0, sizeof(MatmulConfig), &hconfig, 0, NULL, NULL));
+			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, config, CL_TRUE, 0, sizeof(MatmulConfig), &hconfig, 0, NULL, NULL));
 			//*CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 			using namespace std;
@@ -256,7 +262,7 @@ public :
 			host_dindexes=(float*)malloc(sizeof(uint)*ntasks);
 						
 			dindexes=clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(uint) * ntasks, NULL, &status);
-			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue2, dindexes, CL_TRUE, 0, sizeof(uint) * ntasks, &hindexes, 0, NULL, NULL));
+			CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dindexes, CL_TRUE, 0, sizeof(uint) * ntasks, &hindexes, 0, NULL, NULL));
 			//*CUDA_CHECKED_CALL(cudaMalloc(&dindexes, sizeof(uint) * ntasks));
 			//*CUDA_CHECKED_CALL(cudaMemcpy(dindexes, hindexes, sizeof(uint) * ntasks, cudaMemcpyHostToDevice));
 
@@ -287,9 +293,9 @@ public :
 			delete[] hindexes;
 		}
 
-		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue2, C , CL_TRUE, 0, sizeof(float) * n * n, Ch, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueReadBuffer(cmdQueue, C , CL_TRUE, 0, sizeof(float) * n * n, Ch, 0, NULL, NULL));
 		//*CUDA_CHECKED_CALL(cudaMemcpy(Ch, C, sizeof(float) * n * n, cudaMemcpyDeviceToHost));
-
+		clErrchk(clReleaseCommandQueue(cmdQueue));
 
 		CL_CHECKED_CALL(clReleaseMemObject(A));
 		CL_CHECKED_CALL(clReleaseMemObject(B));
@@ -320,6 +326,42 @@ int main(int argc, char** argv)
 	CUDA_CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, 0));
 	cout << "Using device: " << deviceProp.name << endl;
 */
+
+//================================================================================================
+//MyCL Initialization
+
+	used_cl_device = 0;
+
+    //Initializing platform
+    clErrchk(clGetPlatformIDs(0, NULL, &numPlatforms));
+    platforms = (cl_platform_id*)malloc(numPlatforms*sizeof(cl_platform_id));
+    clErrchk(clGetPlatformIDs(numPlatforms, platforms,NULL));
+    
+
+    //Initialize device
+    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &numDevices));
+    devices = (cl_device_id*)malloc(numDevices*sizeof(cl_device_id));
+    clErrchk(clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, numDevices, devices, NULL));
+	if (!numDevices)
+    {
+       std::cout << "No CL devices available" << std::endl;
+       return -1;
+    }
+	if (numDevices<=used_cl_device)
+    {
+       std::cout << "No such CL device ID" << std::endl;
+       return -1;
+    }
+
+    //Creating context
+    context = clCreateContext(NULL, numDevices, devices, NULL, NULL, &status);
+	clErrchk(status);	
+	kernels=(cl_kernel*)malloc(10*sizeof(cl_kernel));
+
+	//compiling OPENCL_CODE
+	compile_device_code();
+//================================================================================================	
+	
 	size_t n = (size_t)strtoull(argv[1], NULL, 0);
 	if (n % BLOCK_SIZE)
 	{
@@ -351,7 +393,7 @@ int main(int argc, char** argv)
 	Matmul(A, B, C3, n, MatmulVersion::WHIPPLETREE, &time);
 	cout << "WHIPPLETREE version completed in " << time << " sec" << endl;
 
-	Matmul(A, B, C4, n, MatmulVersion::TASMAN, &time);
+	//Matmul(A, B, C4, n, MatmulVersion::TASMAN, &time);
 	cout << "TASMAN      version completed in " << time << " sec" << endl;
 
 	/*

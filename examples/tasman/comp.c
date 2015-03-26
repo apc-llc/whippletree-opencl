@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include "comp.h"
 // OpenCL includes
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
@@ -38,7 +37,7 @@ inline void gpuAssert(cl_int code, const char *file, int line)
 bool readKernelFromFile()
 {
 	FILE *fp;
-	fp= fopen("./techniqueMegakernel.h","r");
+	fp= fopen("./../../techniqueMegakernel.h","r");
 	if (!fp)
 	{
 		printf("Failed to load kernel/ \n");
@@ -65,9 +64,9 @@ void compile_device_code() {
     (clBuildProgram(program, numDevices, devices, options, NULL, NULL));
     std::cout << "Program built \n"<< std::endl;
     
-//	kernels[0] = clCreateKernel(program, "megakernel1", &status);
+	kernels[0] = clCreateKernel(program, "megakernel1", &status);
 	//clErrchk(status);
-//	kernels[1] = clCreateKernel(program, "init_queue1", &status);
+	kernels[1] = clCreateKernel(program, "init_queue1", &status);
 	//clErrchk(status);
 	//kernels[2] = clCreateKernel(program, "init_data1", &status);
 	//clErrchk(status);

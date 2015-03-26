@@ -7,14 +7,14 @@ DEFINE_FLAGS=-DBLOCK_SIZE=$(BLOCK_SIZE)
 CXX_FLAGS=-std=c++11 -g
 CXX=g++
 
-all: clean tasman cfiles.o DynamicTaskManager.o DynamicTaskManagerInternal.o
+all: clean tasman cfiles.o DynamicTaskManager.o DynamicTaskManagerInternal.o comp.c
 
 
 cfiles.o: ../../segmentedStorage.c
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c
 
-#test.o: test.cpp
-#	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c
+comp.o: comp.c
+	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c
 
 DynamicTaskManager.o: DynamicTaskManager.c
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c
@@ -25,7 +25,7 @@ matmul.o: matmul.c
 DynamicTaskManagerInternal.o: DynamicTaskManagerInternal.c
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c	
 
-tasman: DynamicTaskManagerInternal.o matmul.o DynamicTaskManager.o cfiles.o
+tasman: DynamicTaskManagerInternal.o matmul.o DynamicTaskManager.o cfiles.o comp.c
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS)
 
 

@@ -602,7 +602,7 @@ __kernel void initData(__global Q* q, int num)
     int id = get_global_id(0);
     for( ; id < num; id += get_global_size(0))
     {
-      InitProc::template init<Q>(q, id);
+      //InitProc::template init<Q>(q, id);
     }
   }
 
