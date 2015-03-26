@@ -591,8 +591,8 @@ __kernel void initQueue(__global Q* q)
   q->init();
 }
 
-//template __attribute__((mangled_name(init_queue1))) 
-//__kernel void initQueue <MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q);
+template __attribute__((mangled_name(init_queue1))) 
+__kernel void initQueue <MyQueue<ProcInfo<MatmulTask> > > (__global MyQueue<ProcInfo<MatmulTask> >* q);
 
 
 
