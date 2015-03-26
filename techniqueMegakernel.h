@@ -285,7 +285,7 @@ namespace Megakernel
         int runs = 0;
         while(run)
         {
-          q->globalMaintain();
+          //q->globalMaintain();
           barrier(CLK_LOCAL_MEM_FENCE);
           if(runs > 10)
           {
@@ -580,7 +580,7 @@ __kernel void megakernel(__global Q* q, uint4 sharedMemDist, int t, int shutdown
 
 
 template __attribute__((mangled_name(megakernel1))) 
-__kernel void megakernel <MyQueue<ProcInfo>, ProcInfo, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<ProcInfo> * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
+__kernel void megakernel <MyQueue<ProcInfo<MatmulTask> >, ProcInfo<MatmulTask>, void, bool, bool, true, Megakernel::TimeLimiter<0,false>, Megakernel::EmptyQueue> (__global MyQueue<ProcInfo<MatmulTask> > * q, uint4 sharedMemDist, int t, int shutdown, volatile __global Megakernel::globalvarsT * globalvars);
 
 
 

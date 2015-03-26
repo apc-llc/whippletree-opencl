@@ -86,13 +86,13 @@ namespace
 		static const int globalMaintainMinThreads = 1;		
 		#endif
 		#ifdef OPENCL_CODE
-		__inline__ /*__device__*/ void globalMaintain()
+		__inline__ /*__device__*/ void globalMaintain(__global DynamicTaskInfo *submission)
 		{
 			if (get_local_id(0) == 0)
 			{
 				if (submission)
 				{
-					TQueue::Type<ProcInfo>::template enqueue<Task>(*submission);
+					//TQueue::Type<ProcInfo>::template enqueue<Task>(*submission);
 					submission = NULL;
 				}
 			}			 
