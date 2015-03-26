@@ -65,7 +65,7 @@ public:
   template<class Data>
   __inline__ /*__device__*/ bool enqueueInitial(Data data) 
   {
-    int pos = atomicAdd(&maxcount, 1);
+    int pos = 0;//atomicAdd(&maxcount, 1);
     uint info = prepareData(data);
     writeData(data, make_uint2(pos, info));
     return true;

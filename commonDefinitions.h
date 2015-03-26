@@ -4,6 +4,7 @@
 #include "queueShared.h"
 #include "queuingPerProc.h"
 #include "segmentedStorage.h"
+#include "queuingMultiPhase.h"
 //#endif
 
 

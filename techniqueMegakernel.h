@@ -54,12 +54,13 @@ extern cl_device_id *devices;
 extern cl_command_queue cmdQueue;
 extern cl_kernel * kernels;
 //global variables
-cl_mem dev_globalvars;
-Megakernel::globalvarsT host_globalvars;
+
+extern cl_mem dev_globalvars;
+extern Megakernel::globalvarsT host_globalvars;
 #endif
 
 #include "delay.h"
-//#include "procinfoTemplate.h"
+#include "procinfoTemplate.h"
 #include "queuingMultiPhase.h"
 
 
@@ -583,6 +584,7 @@ __kernel void megakernel <MyQueue<TestProcInfo>, TestProcInfo, void, bool, bool,
 
 
 
+
 template<class Q>
 __kernel void initQueue(__global Q* q)
 {
@@ -600,7 +602,7 @@ __kernel void initData(__global Q* q, int num)
     int id = get_global_id(0);
     for( ; id < num; id += get_global_size(0))
     {
-      //InitProc::template init<Q>(q, id);
+      InitProc::template init<Q>(q, id);
     }
   }
 
@@ -685,8 +687,8 @@ namespace Megakernel {
         
 		//Setting kernel arguments
 	    //Q* q, uint4 sharedMemDist, int t, int* shutdown,volatile __global Megakernel::globalvarsT * globalvars
-	    //cl_mem q;
-	    //q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);
+	    cl_mem q;
+	    q = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(Q), NULL, &status);
 	    CL_CHECKED_CALL(clSetKernelArg(kernels[0], 0, sizeof(cl_mem), &q));
     	CL_CHECKED_CALL(clSetKernelArg(kernels[0], 1, sizeof(cl_uint4), &technique.sharedMem[Phase]));
     	int null_arg=0;
@@ -699,7 +701,7 @@ namespace Megakernel {
 		size_t localWorkSize[1];
 		localWorkSize[0]=BLOCK_SIZE;
 	    size_t globalWorkSize[1];
-	    globalWorkSize[0] = 512*technique.blockSize[Phase];
+	    globalWorkSize[0] = 512;//*technique.blockSize[Phase];
 
 
 		//Executing kernel
@@ -742,8 +744,7 @@ namespace Megakernel {
       int magic = 2597, null = 0;
       host_globalvars.doneCounter=null;
       host_globalvars.endCounter=magic;
-      //CL_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
-      //CL_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
+      
       CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, dev_globalvars, CL_TRUE, 0, sizeof(globalvarsT), &host_globalvars, 0, NULL, NULL));
       
       SegmentedStorage::checkReinitStorage();

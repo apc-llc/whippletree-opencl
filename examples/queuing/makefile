@@ -9,7 +9,7 @@ CXX=g++
 
 all: clean queue
 
-compile.o:../../comp.c
+compile.o: comp.c
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $^ -o $@ $(LD_FLAGS) $(DEFINE_FLAGS) -c
 
 cfiles.o: ../../segmentedStorage.c
