@@ -69,7 +69,7 @@ cl_mem config;
 
 /*__device__*/ __inline__ void whippletree_matmul(int threadId, int numThreads, __global void* ptaskid, __global volatile uint* shared) 
 {
-	/*float*& A = config.A;
+	float*& A = config.A;
 	float*& B = config.B;
 	float*& C = config.C;
 	size_t& n = config.n;
@@ -134,7 +134,7 @@ cl_mem config;
 	// each thread writes ones/tasman/matmul.c", line 184: error: 
           name followed by "::" must be a class or namespe element
 	C [ic] = sum;
-	*/
+	
 }
 #endif
 
@@ -160,9 +160,9 @@ public:
 	}
 
 	template<class Q>
-	/*__device__*/ __inline__ static void init(Q* q, int id)
+	/*__device__*/ __inline__ static void init(__global Q* q, int id)
 	{
-		q->template enqueueInitial<MatmulTask>(id);
+		//q->template enqueueInitial<MatmulTask>(id);
 	}
 	#endif
 	
@@ -212,9 +212,9 @@ public :
 		cmdQueue = clCreateCommandQueue(context, devices[used_cl_device], 0, &status);
 				
 	
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, A, CL_TRUE, 0, sizeof(float) * n * n, &Ah, 0, NULL, NULL));
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, B, CL_TRUE, 0, sizeof(float) * n * n, &Bh, 0, NULL, NULL));
-		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, C, CL_TRUE, 0, sizeof(float) * n * n, &Ch, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, A, CL_TRUE, 0, sizeof(float) * n * n, Ah, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, B, CL_TRUE, 0, sizeof(float) * n * n, Bh, 0, NULL, NULL));
+		CL_CHECKED_CALL(clEnqueueWriteBuffer(cmdQueue, C, CL_TRUE, 0, sizeof(float) * n * n, Ch, 0, NULL, NULL));
 		
 		if (version == MatmulVersion::WHIPPLETREE)
 		{

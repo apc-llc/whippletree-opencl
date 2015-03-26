@@ -602,12 +602,12 @@ __kernel void initData(__global Q* q, int num)
     int id = get_global_id(0);
     for( ; id < num; id += get_global_size(0))
     {
-      //InitProc::template init<Q>(q, id);
+      InitProc::template init<Q>(q, id);
     }
   }
 
-//template __attribute__((mangled_name(init_data1))) 
-//__kernel void initData <InitProc, MyQueue<TestProcInfo> > (__global MyQueue<TestProcInfo>* q, int num);
+template __attribute__((mangled_name(init_data1))) 
+__kernel void initData <ProcInfo<MatmulTask>, MyQueue<ProcInfo<MatmulTask> > > (__global MyQueue<ProcInfo<MatmulTask> >* q, int num);
 
 
 #endif
@@ -804,9 +804,9 @@ namespace Megakernel {
 
       //Phase0Q::CurrentPhaseProcInfo::print();
 
-      //int b = min((num + 512 - 1)/512,104);
+      int b = std::min((num + 512 - 1)/512,104);
       //initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      //CL_CHECKED_CALL(clFinish());
+      CL_CHECKED_CALL(clFinish(cmdQueue));
     }
 
     int BlockSize(int phase = 0) const
